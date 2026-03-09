@@ -1,0 +1,987 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Header from "../components/Header.astro";
+import Button from "../components/ui/Button.astro";
+import Modal from "../components/ui/Modal.astro";
+import Input from "../components/ui/Input.astro";
+import Select from "../components/ui/Select.astro";
+import "../styles/style.css";
+---
+
+<Layout title="Annuaire Élèves | Internat">
+    <Header />
+    <main class="main-content">
+        <header class="page-context mb-xl">
+            <h1 class="page-title-sm">Annuaire des Élèves</h1>
+            <p class="text-muted">
+                Gestion et consultation des dossiers résidents
+            </p>
+        </header>
+
+        <div class="controls-bar mb-xl">
+            <div class="search-group">
+                <div class="form-group">
+                    <label for="searchInput">Recherche</label>
+                    <input
+                        type="text"
+                        id="searchInput"
+                        placeholder="Nom, prénom..."
+                        style="padding:12px 16px; border:1px solid var(--border-color); border-radius:var(--radius-lg); outline:none; width:250px;"
+                    />
+                </div>
+            </div>
+            <div class="flex-grow"></div>
+            <div class="flex gap-sm">
+                <Button id="btnImport" variant="secondary">Importer CSV</Button>
+                <Button id="btnNewEleve" variant="primary"
+                    >Ajouter un élève</Button
+                >
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr id="tableHeader"></tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+
+        <!-- MAIN ELEVE MODAL -->
+        <Modal id="eleveModal" title="Fiche Élève">
+            <form id="eleveForm">
+                <div class="form-grid">
+                    <Input id="nom" label="Nom" required />
+                    <Input id="prenom" label="Prénom" required />
+
+                    <Select id="classe_id" label="Classe" required>
+                        <option value="">Sélectionner</option>
+                    </Select>
+
+                    <Select id="chambre_id" label="Chambre">
+                        <option value="">Sélectionner</option>
+                    </Select>
+
+                    <div class="form-row-action">
+                        <Select
+                            id="activite_id"
+                            label="Activité"
+                            class="flex-grow"
+                        >
+                            <option value="">Sélectionner</option>
+                        </Select>
+                        <Button
+                            type="button"
+                            id="btnAddActivite"
+                            variant="ghost"
+                            class="btn-add-inline">+</Button
+                        >
+                    </div>
+
+                    <div class="form-row-action">
+                        <Select
+                            id="referent_grenoble_id"
+                            label="Référent"
+                            class="flex-grow"
+                        >
+                            <option value="">Sélectionner</option>
+                        </Select>
+                        <Button
+                            type="button"
+                            id="btnAddResponsable"
+                            variant="ghost"
+                            class="btn-add-inline">+</Button
+                        >
+                    </div>
+
+                    <Select id="genre" label="Genre">
+                        <option value="M">Masculin</option>
+                        <option value="F">Féminin</option>
+                        <option value="Autre">Autre</option>
+                    </Select>
+
+                    <Input
+                        id="temps_transport"
+                        label="Temps Transit"
+                        type="time"
+                    />
+
+                    <Input
+                        id="adresse"
+                        label="Adresse Complète"
+                        class="col-span-2"
+                    />
+                </div>
+
+                <div class="checkbox-group highlight">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="has_retour_tardif" />
+                        <span class="accent-primary-bold"
+                            >ACTIVER RETOUR TARDIF</span
+                        >
+                    </label>
+                </div>
+
+                <div id="options_activite" style="display:none;">
+                    <p class="section-hint">Configuration par jour</p>
+
+                    <div class="retour-tardif-grid">
+                        <div class="grid-header">Jour</div>
+                        <div class="grid-header">Actif</div>
+                        <div class="grid-header">Retour</div>
+                        <div class="grid-header">Repas</div>
+
+                        <div class="day-label">Lundi</div>
+                        <div>
+                            <input
+                                type="checkbox"
+                                class="rt-actif"
+                                data-jour="lundi"
+                            />
+                        </div>
+                        <div>
+                            <input
+                                type="time"
+                                class="rt-heure"
+                                data-jour="lundi"
+                                class="modern-input"
+                            />
+                        </div>
+                        <div>
+                            <select
+                                class="repas-input"
+                                data-jour="lundi"
+                                class="modern-select"
+                            >
+                                <option value="None">None</option>
+                                <option value="Chaud">Chaud</option>
+                                <option value="Froid">Froid</option>
+                            </select>
+                        </div>
+
+                        <div class="day-label">Mardi</div>
+                        <div>
+                            <input
+                                type="checkbox"
+                                class="rt-actif"
+                                data-jour="mardi"
+                            />
+                        </div>
+                        <div>
+                            <input
+                                type="time"
+                                class="rt-heure"
+                                data-jour="mardi"
+                            />
+                        </div>
+                        <div>
+                            <select class="repas-input" data-jour="mardi">
+                                <option value="None">None</option>
+                                <option value="Chaud">Chaud</option>
+                                <option value="Froid">Froid</option>
+                            </select>
+                        </div>
+
+                        <div class="day-label">Mercredi</div>
+                        <div>
+                            <input
+                                type="checkbox"
+                                class="rt-actif"
+                                data-jour="mercredi"
+                            />
+                        </div>
+                        <div>
+                            <input
+                                type="time"
+                                class="rt-heure"
+                                data-jour="mercredi"
+                            />
+                        </div>
+                        <div>
+                            <select class="repas-input" data-jour="mercredi">
+                                <option value="None">None</option>
+                                <option value="Chaud">Chaud</option>
+                                <option value="Froid">Froid</option>
+                            </select>
+                        </div>
+
+                        <div class="day-label">Jeudi</div>
+                        <div>
+                            <input
+                                type="checkbox"
+                                class="rt-actif"
+                                data-jour="jeudi"
+                            />
+                        </div>
+                        <div>
+                            <input
+                                type="time"
+                                class="rt-heure"
+                                data-jour="jeudi"
+                            />
+                        </div>
+                        <div>
+                            <select class="repas-input" data-jour="jeudi">
+                                <option value="None">None</option>
+                                <option value="Chaud">Chaud</option>
+                                <option value="Froid">Froid</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="checkbox-group border-top">
+                    <label
+                        ><input type="checkbox" id="dimanche" /> Dimanche</label
+                    >
+                    <label
+                        ><input type="checkbox" id="dossier_cartone_transmis" /> Dossier
+                        Cartonné</label
+                    >
+                    <label
+                        ><input type="checkbox" id="dossier_complet" /> Complet</label
+                    >
+                    <label
+                        ><input type="checkbox" id="urgence_sociale" /> Urgence Soc.</label
+                    >
+                </div>
+
+                <div class="modal-actions">
+                    <Button
+                        type="button"
+                        id="btnCancelModal"
+                        variant="secondary">Annuler</Button
+                    >
+                    <Button type="submit" variant="primary">Valider</Button>
+                </div>
+            </form>
+        </Modal>
+
+        <!-- QUICK RESPONSABLE MODAL -->
+        <Modal id="modalQuickResp" title="Nouveau Responsable" maxWidth="450px">
+            <div class="flex flex-col gap-lg">
+                <Input
+                    id="new_resp_nom"
+                    label="NOM *"
+                    placeholder="Nom de famille"
+                />
+                <Input
+                    id="new_resp_prenom"
+                    label="PRÉNOM"
+                    placeholder="Prénom"
+                />
+                <Input
+                    id="new_resp_tel"
+                    label="TÉLÉPHONE"
+                    placeholder="06..."
+                />
+                <div class="flex flex-col gap-xs">
+                    <label
+                        class="text-xs font-bold text-muted uppercase tracking-widest"
+                        >ADRESSE</label
+                    >
+                    <textarea
+                        id="new_resp_adresse"
+                        class="modern-textarea"
+                        placeholder="Adresse complète..."></textarea>
+                </div>
+
+                <div class="modal-actions">
+                    <Button id="btnCancelQuickResp" variant="ghost"
+                        >Annuler</Button
+                    >
+                    <Button id="btnSaveQuickResp" variant="primary"
+                        >Créer le responsable</Button
+                    >
+                </div>
+            </div>
+        </Modal>
+        <!-- QUICK ACTIVITE MODAL -->
+        <Modal
+            id="modalQuickActivite"
+            title="Nouvelle Activité"
+            maxWidth="450px"
+        >
+            <div class="flex flex-col gap-lg">
+                <Input
+                    id="new_act_nom"
+                    label="NOM ACTIVITÉ *"
+                    placeholder="ex: Football, Conservatoire..."
+                />
+                <div class="flex flex-col gap-xs">
+                    <label
+                        class="text-xs font-bold text-muted uppercase tracking-widest"
+                        >DESCRIPTION</label
+                    >
+                    <textarea
+                        id="new_act_desc"
+                        class="modern-textarea"
+                        placeholder="Détails de l'activité..."></textarea>
+                </div>
+
+                <div class="modal-actions">
+                    <Button id="btnCancelQuickAct" variant="ghost"
+                        >Annuler</Button
+                    >
+                    <Button id="btnSaveQuickAct" variant="primary"
+                        >Créer l'activité</Button
+                    >
+                </div>
+            </div>
+        </Modal>
+    </main>
+    <!-- IMPORT CSV MODAL -->
+    <Modal id="modalImport" title="Import CSV" maxWidth="500px">
+        <div class="flex flex-col gap-lg">
+            <p class="text-sm text-muted">
+                Importez des élèves en masse via un fichier CSV.
+            </p>
+
+            <div
+                class="p-4 border border-dashed border-gray-300 rounded mb-4 text-center"
+            >
+                <input
+                    type="file"
+                    id="importFile"
+                    accept=".csv"
+                    style="display:none;"
+                />
+                <Button id="btnChooseFile" variant="secondary"
+                    >Choisir un fichier</Button
+                >
+                <p id="fileName" class="text-xs text-muted mt-2">
+                    Aucun fichier choisi
+                </p>
+            </div>
+
+            <div class="text-xs text-muted bg-gray-50 p-3 rounded">
+                <p><strong>Format attendu :</strong></p>
+                <p>NOM;PRENOM;GENRE;CLASSE;CHAMBRE</p>
+                <div class="mt-2 text-right">
+                    <a
+                        href="/modele_import.csv"
+                        download
+                        class="text-primary hover:underline"
+                        >Télécharger le modèle</a
+                    >
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <Button id="btnCancelImport" variant="ghost">Annuler</Button>
+                <Button id="btnConfirmImport" variant="primary">Importer</Button
+                >
+            </div>
+        </div>
+    </Modal>
+</Layout>
+
+<script>
+    let debounceTimer: any;
+
+    document.addEventListener("DOMContentLoaded", () => {
+        chargerEleves();
+
+        // Listeners for page
+        document
+            .getElementById("searchInput")
+            ?.addEventListener("input", () => {
+                // @ts-ignore
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    rechercher();
+                }, 300);
+            });
+        document
+            .getElementById("btnSearch")
+            ?.addEventListener("click", rechercher);
+        document.getElementById("btnReset")?.addEventListener("click", () => {
+            const input = document.getElementById(
+                "searchInput",
+            ) as HTMLInputElement;
+            if (input) input.value = "";
+            chargerEleves();
+        });
+        document
+            .getElementById("btnNewEleve")
+            ?.addEventListener("click", ouvrirModaleAjout);
+
+        // Listeners for Modal Eleve
+        document
+            .getElementById("btnCancelModal")
+            ?.addEventListener("click", fermerModale);
+        document
+            .getElementById("eleveForm")
+            ?.addEventListener("submit", handleEleveSubmit);
+        document
+            .getElementById("has_retour_tardif")
+            ?.addEventListener("change", toggleChampsActivite);
+        document
+            .getElementById("genre")
+            ?.addEventListener("change", updateChambresOptions);
+
+        // Listeners for Quick Resp Modal
+        document
+            .getElementById("btnAddResponsable")
+            ?.addEventListener("click", ouvrirQuickRespModal);
+        document
+            .getElementById("btnCancelQuickResp")
+            ?.addEventListener("click", closeQuickRespModal);
+        document
+            .getElementById("btnSaveQuickResp")
+            ?.addEventListener("click", saveQuickResponsable);
+
+        // Listeners for Quick Act Modal
+        document
+            .getElementById("btnAddActivite")
+            ?.addEventListener("click", ouvrirQuickActModal);
+        document
+            .getElementById("btnCancelQuickAct")
+            ?.addEventListener("click", closeQuickActModal);
+        document
+            .getElementById("btnSaveQuickAct")
+            ?.addEventListener("click", saveQuickActivite);
+
+        // Listeners for Import Modal
+        document
+            .getElementById("btnImport")
+            ?.addEventListener("click", ouvrirImportModal);
+        document
+            .getElementById("btnCancelImport")
+            ?.addEventListener("click", fermerImportModal);
+        document
+            .getElementById("btnConfirmImport")
+            ?.addEventListener("click", lancerImport);
+        document
+            .getElementById("btnChooseFile")
+            ?.addEventListener("click", () => {
+                document.getElementById("importFile")?.click();
+            });
+        document
+            .getElementById("importFile")
+            ?.addEventListener("change", (e) => {
+                const file = (e.target as HTMLInputElement).files?.[0];
+                const fn = document.getElementById("fileName");
+                if (fn)
+                    fn.textContent = file ? file.name : "Aucun fichier choisi";
+            });
+
+        // Close on overlay click (since Modal component has one)
+        window.onclick = function (event: any) {
+            if (event.target.classList.contains("modal-overlay")) {
+                fermerModale();
+                closeQuickRespModal();
+                closeQuickActModal();
+                fermerImportModal();
+            }
+        };
+    });
+
+    async function chargerEleves() {
+        try {
+            const response = await fetch("/api/eleves/annuaire");
+            if (!response.ok) throw new Error("Erreur réseau");
+
+            const data = await response.json();
+            afficherTableau(data);
+        } catch (error) {
+            console.error("Erreur lors du chargement des élèves:", error);
+            const body = document.getElementById("tableBody");
+            if (body)
+                body.innerHTML =
+                    '<tr><td colspan="100%" style="color:red; text-align:center;">Erreur de connexion au serveur</td></tr>';
+        }
+    }
+
+    async function rechercher() {
+        const input = document.getElementById(
+            "searchInput",
+        ) as HTMLInputElement;
+        const term = input.value.trim();
+        if (!term) return chargerEleves();
+
+        try {
+            const r = await fetch(
+                `/api/eleves/search?term=${encodeURIComponent(term)}`,
+            );
+            const data = await r.json();
+            afficherTableau(data);
+        } catch (e) {
+            console.error("Erreur recherche :", e);
+        }
+    }
+
+    function afficherTableau(data: any[]) {
+        const h = document.getElementById("tableHeader");
+        const b = document.getElementById("tableBody");
+        if (!h || !b) return;
+
+        h.innerHTML = "";
+        b.innerHTML = "";
+
+        if (data.length === 0) {
+            b.innerHTML =
+                '<tr><td colspan="9" style="text-align:center">Aucun élève trouvé</td></tr>';
+            return;
+        }
+
+        const colonnesAffichees = [
+            { cle: "nom", label: "NOM" },
+            { cle: "prenom", label: "PRÉNOM" },
+            { cle: "classe", label: "CLASSE" },
+            { cle: "genre", label: "GENRE" },
+            { cle: "chambre", label: "CHAMBRE" },
+            { cle: "referent_grenoble", label: "RESPONSABLE" },
+            { cle: "dimanche", label: "DIMANCHE" },
+            { cle: "dossier_complet", label: "DOSSIER" },
+            { cle: "actions", label: "ACTIONS" },
+        ];
+
+        h.innerHTML =
+            colonnesAffichees.map((col) => `<th>${col.label}</th>`).join("") +
+            "<th>Demission</th>";
+
+        b.innerHTML = data
+            .map(
+                (e: any) => `
+            <tr>
+                ${colonnesAffichees
+                    .map((col) => {
+                        let val = e[col.cle];
+
+                        if (col.cle === "nom" || col.cle === "prenom") {
+                            return `<td><a href="fiche_eleve?id=${e.id}" class="table-link">${val}</a></td>`;
+                        }
+
+                        if (col.cle === "referent_grenoble") {
+                            const respId = e.referent_grenoble_id;
+                            return `<td>${respId ? `<a href="fiche_responsable?id=${respId}" class="table-link-alt">${val}</a>` : val || "-"}</td>`;
+                        }
+
+                        if (col.cle === "dimanche") {
+                            const isT =
+                                val === true ||
+                                val === "t" ||
+                                val === 1 ||
+                                val === "true";
+                            return `<td style="text-align:center">${isT ? '<span class="status-badge active">OUI</span>' : '<span class="status-badge">NON</span>'}</td>`;
+                        }
+
+                        if (col.cle === "dossier_complet") {
+                            const isT =
+                                val === true ||
+                                val === "t" ||
+                                val === 1 ||
+                                val === "true";
+                            return `<td style="text-align:center">${isT ? '<span class="status-badge active">COMPLET</span>' : '<span class="status-badge danger">INCOMPLET</span>'}</td>`;
+                        }
+
+                        return `<td>${val || "-"}</td>`;
+                    })
+                    .join("")}
+                <td style="text-align:center">
+                    <button class="btn btn-ghost btn-sm btn-delete" data-id="${e.id}" title="Archiver l'élève">Retirer</button>
+                </td>
+            </tr>
+        `,
+            )
+            .join("");
+
+        // Attach delete listeners
+        b.querySelectorAll(".btn-delete").forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+                const target = e.target as HTMLElement;
+                const id = target.dataset.id;
+                if (id) supprimerEleve(id);
+            });
+        });
+    }
+
+    async function supprimerEleve(id: string) {
+        if (!confirm("Enregistrer cette démission ? L'élève sera archivé."))
+            return;
+        try {
+            const response = await fetch(`/api/eleves/${id}`, {
+                method: "DELETE",
+            });
+            if (response.ok) chargerEleves();
+        } catch (err) {
+            console.error("Erreur réseau :", err);
+        }
+    }
+
+    // --- MODALE LOGIC ---
+
+    function ouvrirModaleAjout() {
+        const form = document.getElementById("eleveForm") as HTMLFormElement;
+        if (form) form.reset();
+
+        const modal = document.getElementById("eleveModal");
+        const opts = document.getElementById("options_activite");
+        if (modal) modal.style.display = "flex";
+        if (opts) opts.style.display = "none";
+
+        chargerListesDeroulantes();
+    }
+
+    function fermerModale() {
+        const modal = document.getElementById("eleveModal");
+        if (modal) modal.style.display = "none";
+    }
+
+    function toggleChampsActivite() {
+        const checkbox = document.getElementById(
+            "has_retour_tardif",
+        ) as HTMLInputElement;
+        const opts = document.getElementById("options_activite");
+        if (opts)
+            opts.style.display =
+                checkbox && checkbox.checked ? "block" : "none";
+    }
+
+    // --- LOADING SELECTS ---
+
+    async function chargerListesDeroulantes() {
+        try {
+            const genreElem = document.getElementById(
+                "genre",
+            ) as HTMLSelectElement;
+            const genreSelectionne = genreElem ? genreElem.value : "M";
+
+            const [classes, responsables, activites] = await Promise.all([
+                fetch("/api/classes").then((r) => r.json()),
+                fetch("/api/responsables").then((r) => r.json()),
+                fetch("/api/activites").then((r) => r.json()),
+            ]);
+
+            const respChambres = await fetch(
+                `/api/chambres/disponibles?genre=${genreSelectionne}`,
+            );
+            const chambres = await respChambres.json();
+
+            remplirSelect("classe_id", classes, "id", "nom");
+            remplirSelect(
+                "referent_grenoble_id",
+                responsables,
+                "id",
+                (item: any) => `${item.nom} ${item.prenom}`,
+            );
+            remplirSelect("activite_id", activites, "id", "nom");
+
+            remplirSelect(
+                "chambre_id",
+                chambres,
+                "id",
+                (item: any) =>
+                    `${item.numero} (${item.bat}) - ${item.places_libres} place(s) libre(s)`,
+            );
+        } catch (err) {
+            console.error("Erreur lors du chargement des listes:", err);
+        }
+    }
+
+    async function updateChambresOptions() {
+        const genreElem = document.getElementById("genre") as HTMLSelectElement;
+        const genre = genreElem.value;
+        const selectChambre = document.getElementById("chambre_id");
+        if (selectChambre)
+            selectChambre.innerHTML = '<option value="">Chargement...</option>';
+
+        try {
+            const response = await fetch(
+                `/api/chambres/disponibles?genre=${genre}`,
+            );
+            if (!response.ok)
+                throw new Error(`Erreur HTTP: ${response.status}`);
+            const chambres = await response.json();
+            remplirSelect(
+                "chambre_id",
+                chambres,
+                "id",
+                (item: any) =>
+                    `${item.numero} (${item.bat}) - ${item.places_libres} place(s) libre(s)`,
+            );
+        } catch (err) {
+            if (selectChambre)
+                selectChambre.innerHTML = '<option value="">Erreur</option>';
+        }
+    }
+
+    function remplirSelect(
+        id: string,
+        data: any[],
+        valueKey: string,
+        labelFormatter: any,
+    ) {
+        const select = document.getElementById(id);
+        if (!select) return;
+        select.innerHTML = '<option value="">Sélectionner</option>';
+        data.forEach((item) => {
+            const option = document.createElement("option");
+            option.value = item[valueKey];
+            option.textContent =
+                typeof labelFormatter === "function"
+                    ? labelFormatter(item)
+                    : item[labelFormatter];
+            select.appendChild(option);
+        });
+    }
+
+    // --- FORM SUBMIT ---
+
+    async function handleEleveSubmit(e: Event) {
+        e.preventDefault();
+
+        // Helper to get element value
+        const val = (id: string) =>
+            (document.getElementById(id) as HTMLInputElement)?.value;
+        const checked = (id: string) =>
+            (document.getElementById(id) as HTMLInputElement)?.checked;
+
+        const retours: any = {};
+        const repasSelectionnes: any[] = [];
+        ["lundi", "mardi", "mercredi", "jeudi"].forEach((jour) => {
+            const actif = document.querySelector(
+                `.rt-actif[data-jour="${jour}"]`,
+            ) as HTMLInputElement;
+            if (actif && actif.checked) {
+                retours[`${jour}_actif`] = true;
+                retours[`heure_${jour}`] =
+                    (
+                        document.querySelector(
+                            `.rt-heure[data-jour="${jour}"]`,
+                        ) as HTMLInputElement
+                    ).value || null;
+                const typeRepas = (
+                    document.querySelector(
+                        `.repas-input[data-jour="${jour}"]`,
+                    ) as HTMLSelectElement
+                ).value;
+                if (typeRepas !== "None")
+                    repasSelectionnes.push({ jour, type: typeRepas });
+            } else {
+                retours[`${jour}_actif`] = false;
+                retours[`heure_${jour}`] = null;
+            }
+        });
+
+        const fullData = {
+            nom: val("nom"),
+            prenom: val("prenom"),
+            genre: val("genre"),
+            classe_id: val("classe_id"),
+            chambre_id: val("chambre_id"),
+            referent_grenoble_id: val("referent_grenoble_id"),
+            activite_id: val("activite_id"),
+            adresse: val("adresse"),
+            temps_transport: val("temps_transport"),
+            dimanche: checked("dimanche"),
+            dossier_cartone_transmis: checked("dossier_cartone_transmis"),
+            dossier_complet: checked("dossier_complet"),
+            urgence_sociale: checked("urgence_sociale"),
+            retours_tardifs: retours,
+            repas: repasSelectionnes,
+        };
+
+        try {
+            const response = await fetch("/api/eleves", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(fullData),
+            });
+            if (response.ok) {
+                fermerModale();
+                chargerEleves();
+            } else {
+                const err = await response.json();
+                alert(
+                    "Erreur lors de l'enregistrement: " +
+                        (err.error || "Inconnue"),
+                );
+            }
+        } catch (error) {
+            console.error("Erreur:", error);
+        }
+    }
+
+    // --- QUICK RESPONSABLE ---
+
+    function ouvrirQuickRespModal() {
+        const n: any = (id: string) =>
+            ((document.getElementById(id) as HTMLInputElement).value = "");
+        n("new_resp_nom");
+        n("new_resp_prenom");
+        n("new_resp_tel");
+        n("new_resp_adresse");
+        const m = document.getElementById("modalQuickResp");
+        if (m) m.style.display = "flex";
+    }
+
+    function closeQuickRespModal() {
+        const m = document.getElementById("modalQuickResp");
+        if (m) m.style.display = "none";
+    }
+
+    async function saveQuickResponsable() {
+        const nom = (
+            document.getElementById("new_resp_nom") as HTMLInputElement
+        ).value.trim();
+        if (!nom) return alert("Le nom est obligatoire");
+
+        const payload = {
+            nom: nom,
+            prenom: (
+                document.getElementById("new_resp_prenom") as HTMLInputElement
+            ).value.trim(),
+            telephone: (
+                document.getElementById("new_resp_tel") as HTMLInputElement
+            ).value.trim(),
+            adresse: (
+                document.getElementById("new_resp_adresse") as HTMLInputElement
+            ).value.trim(),
+        };
+
+        try {
+            const response = await fetch("/api/responsables", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                const res = await fetch("/api/responsables");
+                const responsables = await res.json();
+
+                remplirSelect(
+                    "referent_grenoble_id",
+                    responsables,
+                    "id",
+                    (item: any) => `${item.nom} ${item.prenom}`,
+                );
+
+                (
+                    document.getElementById(
+                        "referent_grenoble_id",
+                    ) as HTMLSelectElement
+                ).value = result.id;
+                closeQuickRespModal();
+            } else {
+                alert("Erreur lors de la création du responsable.");
+            }
+        } catch (error) {
+            console.error("Erreur:", error);
+        }
+    }
+    // --- QUICK ACTIVITE ---
+
+    function ouvrirQuickActModal() {
+        (document.getElementById("new_act_nom") as HTMLInputElement).value = "";
+        (document.getElementById("new_act_desc") as HTMLTextAreaElement).value =
+            "";
+        const m = document.getElementById("modalQuickActivite");
+        if (m) m.style.display = "flex";
+    }
+
+    function closeQuickActModal() {
+        const m = document.getElementById("modalQuickActivite");
+        if (m) m.style.display = "none";
+    }
+
+    async function saveQuickActivite() {
+        const nom = (
+            document.getElementById("new_act_nom") as HTMLInputElement
+        ).value.trim();
+        if (!nom) return alert("Le nom est obligatoire");
+
+        const payload = {
+            nom: nom,
+            description: (
+                document.getElementById("new_act_desc") as HTMLTextAreaElement
+            ).value.trim(),
+        };
+
+        try {
+            const response = await fetch("/api/activites", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                // Refresh activity list
+                const res = await fetch("/api/activites");
+                const activites = await res.json();
+                remplirSelect("activite_id", activites, "id", "nom");
+
+                // Select the new one
+                (
+                    document.getElementById("activite_id") as HTMLSelectElement
+                ).value = result.id;
+                closeQuickActModal();
+            } else {
+                const err = await response.json();
+                alert(err.error || "Erreur lors de la création de l'activité.");
+            }
+        } catch (error) {
+            console.error("Erreur:", error);
+        }
+    }
+
+    // --- IMPORT LOGIC ---
+    function ouvrirImportModal() {
+        const m = document.getElementById("modalImport");
+        if (m) m.style.display = "flex";
+    }
+
+    function fermerImportModal() {
+        const m = document.getElementById("modalImport");
+        if (m) m.style.display = "none";
+        // Reset
+        const fileInput = document.getElementById(
+            "importFile",
+        ) as HTMLInputElement;
+        if (fileInput) fileInput.value = "";
+        const fn = document.getElementById("fileName");
+        if (fn) fn.textContent = "Aucun fichier choisi";
+    }
+
+    async function lancerImport() {
+        const fileInput = document.getElementById(
+            "importFile",
+        ) as HTMLInputElement;
+        const file = fileInput.files?.[0];
+        if (!file) return alert("Veuillez choisir un fichier CSV.");
+
+        try {
+            const text = await file.text();
+
+            const res = await fetch("/api/eleves/import", {
+                method: "POST",
+                headers: { "Content-Type": "text/csv" },
+                body: text,
+            });
+
+            const result = await res.json();
+
+            if (res.ok) {
+                let msg = result.message;
+                if (result.errors && result.errors.length > 0) {
+                    msg +=
+                        "\n\nErreurs rencontrées :\n" +
+                        result.errors.join("\n");
+                }
+                alert(msg);
+                fermerImportModal();
+                chargerEleves();
+            } else {
+                alert("Erreur lors de l'import : " + result.error);
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Erreur client lors de l'import.");
+        }
+    }
+</script>

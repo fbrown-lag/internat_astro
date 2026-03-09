@@ -1,0 +1,33 @@
+services:
+  app:
+    build: .
+    ports:
+      - "4321:4321"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=4321
+      - DATABASE_URL=postgresql://postgres:password@db:5432/gestion_internat
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=gestion_internat
+    depends_on:
+      - db
+    volumes:
+      - ./backups:/app/backups
+      - ../BD:/BD
+    stdin_open: true # docker run -i
+    tty: true # docker run -t
+
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=gestion_internat
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+volumes:
+  pgdata:

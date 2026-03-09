@@ -1,0 +1,391 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Button from '../components/ui/Button.astro';
+import Card from '../components/ui/Card.astro';
+import Modal from '../components/ui/Modal.astro';
+import Input from '../components/ui/Input.astro';
+import '../styles/style.css';
+---
+
+<Layout title="Profil Élève | Internat">
+    <Header />
+    <main class="main-content">
+        <div class="flex justify-between items-center mb-xl">
+            <h1 id="nomTitre" class="text-primary m-0">Dossier Élève</h1>
+            <div class="flex gap-md">
+                <Button id="btnAnnuler" variant="secondary" style="display: none;">Annuler les modifications</Button>
+                <Button id="btnEditer" variant="secondary">Mettre à jour le dossier</Button>
+                <Button href="/eleves" variant="secondary">Retourner à la liste complète</Button>
+            </div>
+        </div>
+
+    <div class="profile-container p-lg">
+        <div class="grid grid-cols-2 gap-xl">
+            <Card title="Informations Générales">
+                <div class="info-grid">
+                    <div class="info-item"><label>Genre</label><span id="view_genre"></span></div>
+                    <div class="info-item"><label>Classe</label><span id="view_classe"></span></div>
+                    <div class="info-item"><label>Chambre</label><span id="view_chambre"></span></div>
+                    <div class="info-item"><label>Adresse</label><span id="view_adresse"></span></div>
+                </div>
+            </Card>
+
+            <Card title="Responsable Référent">
+                <div class="info-grid">
+                    <div class="info-item"><label>Nom</label><span id="view_resp_nom"></span></div>
+                    <div class="info-item"><label>Téléphone</label><span id="view_resp_tel"></span></div>
+                </div>
+            </Card>
+
+            <Card title="Emploi du Temps & Repas" class="col-span-2">
+                <div id="view_global_planning" class="planning-display"></div>
+            </Card>
+
+            <Card title="Statut Administratif" class="col-span-2">
+                <div class="status-grid">
+                    <div class="status-badge" id="badge_dimanche"></div>
+                    <div class="status-badge" id="badge_dossier_complet"></div>
+                    <div class="status-badge" id="badge_urgence_sociale"></div>
+                    <div class="status-badge" id="badge_dossier_cartone_transmis"></div>
+                </div>
+            </Card>
+        </div>
+    </div>
+
+    <!-- Quick Resp Modal (Reused) -->
+    <Modal id="modalQuickResp" title="Nouveau Responsable" maxWidth="450px">
+        <div class="flex flex-col gap-md">
+            <Input id="new_resp_nom" label="NOM *" required />
+            <Input id="new_resp_prenom" label="PRÉNOM" />
+            <Input id="new_resp_tel" label="TÉLÉPHONE" />
+            <div class="form-group text-left">
+                <label>ADRESSE</label>
+                <textarea id="new_resp_adresse" class="modern-textarea"></textarea>
+            </div>
+            
+            <div class="modal-actions mt-md">
+                <Button id="btnCancelQuick" variant="secondary">Annuler</Button>
+                <Button id="btnSaveQuick" variant="primary">Créer</Button>
+            </div>
+        </div>
+    </Modal>
+    </Modal>
+    </main>
+</Layout>
+
+<script>
+    let isEditing = false;
+    let currentEleveData: any = null;
+    let listesRef: any = { classes: [], chambres: [], responsables: [] };
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            await loadEleveData();
+            await loadReferences();
+
+            document.getElementById('btnAnnuler')?.addEventListener('click', () => {
+                if(confirm("Annuler les modifications ?")) location.reload(); 
+            });
+
+            document.getElementById('btnEditer')?.addEventListener('click', handleEditClick);
+            
+            // Quick Resp Bindings
+            (window as any).openQuickRespModal = () => {
+                 document.getElementById('modalQuickResp')!.style.display = 'flex';
+            };
+            document.getElementById('btnCancelQuick')?.addEventListener('click', () => {
+                 document.getElementById('modalQuickResp')!.style.display = 'none';
+            });
+            document.getElementById('btnSaveQuick')?.addEventListener('click', saveQuickResponsable);
+
+        } catch (err) {
+            console.error("Erreur critique au chargement :", err);
+        }
+    });
+
+    async function loadEleveData() {
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get('id');
+        if (!id) return;
+
+        try {
+            const res = await fetch(`/api/eleves/${id}`);
+            if (!res.ok) throw new Error("Impossible de récupérer l'élève");
+            
+            const e = await res.json();
+            currentEleveData = e;
+
+            const titre = document.getElementById('nomTitre');
+            if(titre) titre.textContent = `${(e.nom || '').toUpperCase()} ${e.prenom || ''}`;
+            
+            setText('view_genre', e.genre || '-');
+            setText('view_classe', e.classe || '-');
+            setText('view_chambre', e.chambre || '-');
+            setText('view_adresse', e.adresse || '-');
+
+            const telBrut = e.referent_tel || '';
+            setText('view_resp_nom', e.referent_nom_complet || 'Aucun');
+            setText('view_resp_tel', telBrut.replace(/(\d{2})(?=\d)/g, '$1.') || 'Non renseigné');
+
+            renderPlanning();
+            updateBadgesDisplay();
+        } catch (err) { 
+            console.error("Erreur loadEleveData:", err);
+            throw err;
+        }
+    }
+
+    function setText(id: string, text: string) {
+        const el = document.getElementById(id);
+        if(el) el.textContent = text;
+    }
+
+    async function loadReferences() {
+        try {
+            const genre = currentEleveData ? currentEleveData.genre : 'Autre';
+
+            const [resCl, resCh, resRe] = await Promise.all([
+                fetch('/api/classes'),
+                fetch(`/api/chambres/disponibles?genre=${encodeURIComponent(genre)}`),
+                fetch('/api/responsables')
+            ]);
+
+            listesRef.classes = await resCl.json();
+            listesRef.chambres = await resCh.json();
+            listesRef.responsables = await resRe.json();
+        } catch (e) { console.error("Erreur loadReferences:", e); }
+    }
+
+    function renderPlanning() {
+        const e = currentEleveData;
+        const planningDiv = document.getElementById('view_global_planning');
+        if(!planningDiv) return;
+
+        const days = ['lundi', 'mardi', 'mercredi', 'jeudi']; // Renamed to avoid confusion if any
+        let html = '';
+
+        days.forEach(j => {
+            const repas = e.repas_details ? e.repas_details.find((r:any) => r.jour_nom.toLowerCase() === j) : null;
+            const estTardif = e[`${j}_actif`] === true || e[`${j}_actif`] === 't';
+            const heure = e[`heure_${j}`] || '18:00';
+
+            if (!isEditing) {
+                html += `
+                    <div class="planning-row" style="display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #1a1a1a;">
+                        <div style="flex: 1;"><strong style="color: var(--luxury-gold);">${j}</strong></div>
+                        <div style="flex: 2;">${repas ? 'Repas ' + repas.type_repas_prevu : 'Standard'}</div>
+                        <div style="flex: 1; text-align: right; color: ${estTardif ? '#d4af37' : '#666'};">
+                            <span style="font-size: 0.7rem; display: block;">Rentrée</span> ${estTardif ? heure : '18h00'}
+                        </div>
+                    </div>`;
+            } else {
+                html += `
+                    <div class="planning-row" style="display: flex; gap: 25px; padding: 15px 10px; border-bottom: 1px solid #333; align-items: center;">
+                        <strong style="width: 100px; color: gold; flex-shrink: 0;">${j.toUpperCase()}</strong>
+                        <select id="edit_repas_${j}" style="background:transparent; color:white; border:1px solid gold; flex: 2; padding: 10px;">
+                            <option value="" ${!repas ? 'selected' : ''} style="background:#000;">Standard</option>
+                            <option value="Froid" ${repas?.type_repas_prevu === 'Froid' ? 'selected' : ''} style="background:#000;">Froid</option>
+                            <option value="Chaud" ${repas?.type_repas_prevu === 'Chaud' ? 'selected' : ''} style="background:#000;">Chaud</option>
+                        </select>
+                        <div style="display:flex; align-items:center; gap:15px; flex: 1; justify-content: flex-end;">
+                            <input type="checkbox" id="edit_actif_${j}" ${estTardif ? 'checked' : ''}>
+                            <input type="time" id="edit_heure_${j}" value="${heure}" style="background:transparent; color:white; border:1px solid gold; padding: 8px;">
+                        </div>
+                    </div>`;
+            }
+        });
+        planningDiv.innerHTML = html;
+    }
+
+    function updateBadgesDisplay() {
+        const keys = ['dimanche', 'dossier_complet', 'urgence_sociale', 'dossier_cartone_transmis'];
+        keys.forEach(key => {
+            const el = document.getElementById(`badge_${key}`);
+            if (!el) return;
+            const active = (currentEleveData[key] === true || currentEleveData[key] === 't');
+            el.style.opacity = active ? "1" : "0.3";
+            const kStr = key as keyof CSSStyleDeclaration;
+            el.style.border = active ? "1px solid var(--luxury-gold)" : "1px solid #333";
+            el.innerHTML = `${key.replace(/_/g, ' ')} ${active ? '✅' : '❌'}`;
+            el.style.cursor = isEditing ? "pointer" : "default";
+            
+            // Clean old listeners if any by cloning (simple trick) or just reassign onclick
+            el.onclick = isEditing ? () => { currentEleveData[key] = !active; updateBadgesDisplay(); } : null;
+        });
+    }
+
+    async function handleEditClick() {
+        if (!isEditing) {
+            isEditing = true;
+            document.getElementById('btnAnnuler')!.style.display = "block";
+            const btn = document.getElementById('btnEditer')!;
+            btn.textContent = "Enregistrer";
+            btn.style.background = "#28a745";
+            
+            const vNom = currentEleveData.nom || "";
+            const vPrenom = currentEleveData.prenom || "";
+            document.getElementById('nomTitre').innerHTML = `
+                <input type="text" id="input_nom" value="${vNom}" style="width:180px; background:transparent; color:#f9e29c !important; border:1px solid #d4af37; padding:8px; margin-right:10px; text-transform: uppercase; font-weight: bold;">
+                <input type="text" id="input_prenom" value="${vPrenom}" style="width:180px; background:transparent; color:#f9e29c !important; border:1px solid #d4af37; padding:8px;">
+            `;
+
+            makeStaticSelect('view_genre', [{id:'M', nom:'Masculin'}, {id:'F', nom:'Féminin'}], currentEleveData.genre);
+            makeEditable('view_adresse', currentEleveData.adresse);
+            makeEditable('view_resp_tel', currentEleveData.referent_tel); 
+            makeSelect('view_classe', listesRef.classes, currentEleveData.classe_id);
+            makeSelect('view_chambre', listesRef.chambres, currentEleveData.chambre_id);
+            makeSelect('view_resp_nom', listesRef.responsables, currentEleveData.referent_grenoble_id);
+
+            renderPlanning();
+            updateBadgesDisplay();
+        } else {
+            saveAll();
+        }
+    }
+
+    function makeEditable(id: string, val: string) {
+        document.getElementById(id)!.innerHTML = `<input type="text" id="input_${id}" value="${val || ''}" style="width:100%; background:transparent; color:white; border:1px solid #444; padding:5px;">`;
+    }
+
+    function makeStaticSelect(id:string, options:any[], currentVal:string) {
+        const container = document.getElementById(id);
+        if(!container) return;
+        let html = `<select id="input_${id}" style="width:100%; background:transparent; color:white; border:1px solid #444; padding:5px;">`;
+        
+        let finalOptions = options;
+        if (id === 'view_genre') {
+            finalOptions = [
+                {id: 'M', nom: 'Masculin'},
+                {id: 'F', nom: 'Féminin'},
+                {id: 'Autre', nom: 'Autre'}
+            ];
+        }
+
+        finalOptions.forEach(opt => {
+            html += `<option value="${opt.id}" ${opt.id === currentVal ? 'selected' : ''} style="background:#000;">${opt.nom}</option>`;
+        });
+        container.innerHTML = html + `</select>`;
+
+        if (id === 'view_genre') {
+            document.getElementById(`input_${id}`)?.addEventListener('change', async (e) => {
+                const nvGenre = (e.target as HTMLSelectElement).value;
+                try {
+                    const res = await fetch(`/api/chambres/disponibles?genre=${encodeURIComponent(nvGenre)}`);
+                    if (res.ok) {
+                        listesRef.chambres = await res.json();
+                        makeSelect('view_chambre', listesRef.chambres, currentEleveData.chambre_id);
+                    }
+                } catch (err) { console.error(err); }
+            });
+        }
+    }
+
+    function makeSelect(id:string, list: any[], currentId: any) {
+        const container = document.getElementById(id);
+        if(!container) return;
+        let html = `<div style="display:flex; gap:10px; width:100%; align-items:center;">`;
+        html += `<select id="input_${id}" style="flex:1; background:transparent; color:white; border:1px solid #444; padding:5px;">`;
+        html += `<option value="" style="background:#000;">-- Sélectionner --</option>`;
+        
+        // Ensure current room is in the list
+        if (id === 'view_chambre' && currentId) {
+            const currentInList = list.find(i => i.id == currentId);
+            if (!currentInList && currentEleveData.chambre) {
+                 // The current room is likely full (since it's not in the 'available' list) 
+                 // but it belongs to this student, so we must show it.
+                 html += `<option value="${currentId}" selected style="background:#000;">${currentEleveData.chambre} (Chambre actuelle)</option>`;
+            }
+        }
+
+        list.forEach(i => {
+            let txt = i.numero ? `${i.numero} (${i.bat})` : (i.nom + (i.prenom ? ' ' + i.prenom : ''));
+            
+            // Show available places like in the creation modal
+            if (i.places_libres !== undefined) {
+                txt += ` - ${i.places_libres} place(s) libre(s)`;
+            }
+
+            const isSelected = i.id == currentId;
+            html += `<option value="${i.id}" ${isSelected ? 'selected' : ''} style="background:#000;">${txt}</option>`;
+        });
+        html += `</select>`;
+        
+        if (id === 'view_resp_nom') {
+            html += `<button type="button" onclick="openQuickRespModal()" style="background:var(--luxury-gold); color:black; border:none; width:30px; height:30px; cursor:pointer; font-weight:bold; font-size:1.2rem; display:flex; align-items:center; justify-content:center; border-radius:2px;">+</button>`;
+        }
+        
+        container.innerHTML = html + `</div>`;
+    }
+
+    async function saveAll() {
+        const getVal = (id:string) => (document.getElementById(id) as HTMLInputElement).value;
+        const getCheck = (id:string) => (document.getElementById(id) as HTMLInputElement).checked;
+
+        const payload = {
+            nom: getVal('input_nom'),
+            prenom: getVal('input_prenom'),
+            genre: getVal('input_view_genre'),
+            adresse: getVal('input_view_adresse'),
+            referent_tel: getVal('input_view_resp_tel'), 
+            classe_id: getVal('input_view_classe') || null,
+            chambre_id: getVal('input_view_chambre') || null,
+            referent_grenoble_id: getVal('input_view_resp_nom') || null,
+            dimanche: currentEleveData.dimanche,
+            dossier_complet: currentEleveData.dossier_complet,
+            urgence_sociale: currentEleveData.urgence_sociale,
+            dossier_cartone_transmis: currentEleveData.dossier_cartone_transmis,
+            repas: ['lundi', 'mardi', 'mercredi', 'jeudi'].map(j => ({
+                jour: j, 
+                type: (document.getElementById(`edit_repas_${j}`) as HTMLSelectElement).value
+            })).filter(r => r.type),
+            retours_tardifs: {
+                lundi_actif: getCheck('edit_actif_lundi'),
+                heure_lundi: getVal('edit_heure_lundi'),
+                mardi_actif: getCheck('edit_actif_mardi'),
+                heure_mardi: getVal('edit_heure_mardi'),
+                mercredi_actif: getCheck('edit_actif_mercredi'),
+                heure_mercredi: getVal('edit_heure_mercredi'),
+                jeudi_actif: getCheck('edit_actif_jeudi'),
+                heure_jeudi: getVal('edit_heure_jeudi')
+            }
+        };
+
+        try {
+            const res = await fetch(`/api/eleves/${currentEleveData.id}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            if(res.ok) { 
+                alert("Enregistré !"); 
+                location.reload(); 
+            } else {
+                alert("Erreur lors de la sauvegarde.");
+            }
+        } catch (err) { console.error(err); }
+    }
+
+    // Quick Resp (duplicated due to script scope isolation but that's fine for now)
+    async function saveQuickResponsable() {
+        const nom = (document.getElementById('new_resp_nom') as HTMLInputElement).value.trim();
+        if (!nom) return alert("Le nom est obligatoire");
+        const payload = {
+            nom: nom,
+            prenom: (document.getElementById('new_resp_prenom') as HTMLInputElement).value.trim(),
+            telephone: (document.getElementById('new_resp_tel') as HTMLInputElement).value.trim(),
+            adresse: (document.getElementById('new_resp_adresse') as HTMLInputElement).value.trim()
+        };
+        try {
+            const response = await fetch('/api/responsables', { method: 'POST', body: JSON.stringify(payload) });
+            if (response.ok) {
+                const result = await response.json();
+                const res = await fetch('/api/responsables');
+                const responsables = await res.json();
+                listesRef.responsables = responsables;
+                makeSelect('view_resp_nom', listesRef.responsables, result.id);
+                document.getElementById('modalQuickResp')!.style.display = 'none';
+            } else { alert("Erreur lors de la création du responsable."); }
+        } catch (error) { console.error("Erreur:", error); }
+    }
+</script>

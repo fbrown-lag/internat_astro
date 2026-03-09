@@ -1,0 +1,19 @@
+{
+  "name": "internat_astro",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "start": "node ./dist/server/entry.mjs",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/node": "^9.5.2",
+    "astro": "^5.17.1",
+    "dotenv": "^17.2.3",
+    "node-cron": "^4.2.1",
+    "pg": "^8.17.2"
+  }
+}

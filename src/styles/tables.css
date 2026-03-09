@@ -1,0 +1,55 @@
+/* --- TABLEAU --- */
+.table-container {
+    overflow-x: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-2xl);
+    background: var(--bg-surface-alt);
+    box-shadow: var(--shadow-md);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+/* Table headers and cells are styled in components.css */
+
+tr {
+    transition: background 0.2s ease;
+}
+
+tr:hover {
+    background: var(--bg-surface-alt);
+}
+
+.row-modified {
+    background: rgba(255, 56, 80, 0.05);
+}
+
+/* Lien Principal (Nom/Prénom) */
+.table-link {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.table-link:hover {
+    color: var(--primary-hover);
+    text-decoration: underline;
+}
+
+/* Lien Secondaire */
+.table-link-alt {
+    color: var(--text-soft);
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+}
+
+.table-link-alt:hover {
+    color: var(--text-main);
+    text-decoration: underline;
+}

@@ -1,0 +1,190 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Button from '../components/ui/Button.astro';
+import '../styles/style.css';
+---
+
+<Layout title="Gestion des Activités | Internat">
+    <Header />
+
+    <main class="main-content">
+        <header class="page-context mb-xl">
+            <h1 class="page-title-sm">Gestion des Activités</h1>
+            <p class="text-muted">Configuration et suivi des activités</p>
+        </header>
+
+        <div class="controls-bar mb-xl">
+            <div class="search-group">
+                <div class="form-group">
+                    <label for="act_search">Recherche</label>
+                    <input type="text" id="act_search" placeholder="Nom d'activité..." 
+                        style="padding:12px 16px; border:1px solid var(--border-color); border-radius:var(--radius-lg); outline:none; width:250px;">
+                </div>
+            </div>
+            <div class="flex-grow"></div>
+            <Button id="btnOpenAddActivite" variant="primary">+ Nouvelle Activité</Button>
+        </div>
+
+        <div class="table-container">
+            <table class="luxury-table">
+                <thead>
+                    <tr>
+                        <th>NOM</th>
+                        <th>DESCRIPTION</th>
+                        <th style="width: 150px;">ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody id="activitesTableBody">
+                    <tr><td colspan="3" style="text-align: center;">Chargement...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- MODAL ADD/EDIT ACTIVITE -->
+    <div id="modalActivite" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; justify-content:center; align-items:center;">
+        <div style="background: var(--bg-surface); padding:30px; border:1px solid var(--border-color); border-radius:var(--radius-xl); width:400px; box-shadow: var(--shadow-lg);">
+            <h3 id="activiteModalTitle" style="color:var(--text-main); margin-top:0; font-size:1.3rem; font-weight:700;">Nouvelle Activité</h3>
+            <input type="hidden" id="edit_act_id">
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <div>
+                    <label style="color:var(--text-main); font-size:0.875rem; font-weight:600; display:block; margin-bottom:5px;">NOM ACTIVITÉ *</label>
+                    <input type="text" id="act_nom" style="width:100%; background:var(--bg-surface-alt); border:1px solid var(--border-color); color:var(--text-main); padding:10px; border-radius:var(--radius-md); outline:none;">
+                </div>
+                <div>
+                    <label style="color:var(--text-main); font-size:0.875rem; font-weight:600; display:block; margin-bottom:5px;">DESCRIPTION</label>
+                    <textarea id="act_desc" style="width:100%; height:60px; background:var(--bg-surface-alt); border:1px solid var(--border-color); color:var(--text-main); padding:10px; border-radius:var(--radius-md); outline:none; resize:vertical;"></textarea>
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:10px;">
+                    <button id="btnCancelModal" class="btn btn-ghost">Annuler</button>
+                    <button id="btnSaveActivite" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</Layout>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        chargerActivites();
+        document.getElementById('btnOpenAddActivite')?.addEventListener('click', () => ouvrirModal());
+        document.getElementById('btnCancelModal')?.addEventListener('click', fermerModal);
+        document.getElementById('btnSaveActivite')?.addEventListener('click', sauvegarderActivite);
+
+        document.getElementById('act_search')?.addEventListener('input', (e) => {
+            const term = (e.target as HTMLInputElement).value.toLowerCase();
+            const rows = document.querySelectorAll('#activitesTableBody tr');
+            rows.forEach(row => {
+                const text = row.textContent?.toLowerCase() || '';
+                (row as HTMLElement).style.display = text.includes(term) ? '' : 'none';
+            });
+        });
+    });
+
+    async function chargerActivites() {
+        try {
+            const res = await fetch('/api/activites');
+            const data = await res.json();
+            const tbody = document.getElementById('activitesTableBody');
+            if(!tbody) return;
+
+            tbody.innerHTML = '';
+
+            if(data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Aucune activité enregistrée.</td></tr>';
+                return;
+            }
+
+            data.forEach((a: any) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="font-weight:bold; color:var(--bright-gold); text-transform:uppercase;">${a.nom}</td>
+                    <td>${a.description || '-'}</td>
+                    <td style="text-align:center;">
+                        <button class="btn-edit" style="color:var(--luxury-gold); background:none; border:none; cursor:pointer; font-size:1.2rem; margin-right:15px;">✏️</button>
+                        <button class="btn-delete" style="color:red; background:none; border:none; cursor:pointer; font-size:1.2rem;">✕</button>
+                    </td>
+                `;
+                
+                row.querySelector('.btn-edit')?.addEventListener('click', () => ouvrirModal(a));
+                row.querySelector('.btn-delete')?.addEventListener('click', () => supprimerActivite(a.id));
+                
+                tbody.appendChild(row);
+            });
+
+        } catch(err) {
+            console.error(err);
+        }
+    }
+
+    function ouvrirModal(act: any = null) {
+        const modal = document.getElementById('modalActivite');
+        const title = document.getElementById('activiteModalTitle');
+        const idInput = document.getElementById('edit_act_id') as HTMLInputElement;
+        const nomInput = document.getElementById('act_nom') as HTMLInputElement;
+        const descInput = document.getElementById('act_desc') as HTMLTextAreaElement;
+
+        if (act) {
+            if (title) title.textContent = "Modifier l'Activité";
+            idInput.value = act.id;
+            nomInput.value = act.nom;
+            descInput.value = act.description || '';
+        } else {
+            if (title) title.textContent = "Nouvelle Activité";
+            idInput.value = '';
+            nomInput.value = '';
+            descInput.value = '';
+        }
+
+        if (modal) modal.style.display = 'flex';
+    }
+
+    function fermerModal() {
+        const modal = document.getElementById('modalActivite');
+        if (modal) modal.style.display = 'none';
+    }
+
+    async function sauvegarderActivite() {
+        const id = (document.getElementById('edit_act_id') as HTMLInputElement).value;
+        const nom = (document.getElementById('act_nom') as HTMLInputElement).value.trim();
+        const description = (document.getElementById('act_desc') as HTMLTextAreaElement).value.trim();
+
+        if (!nom) return alert("Le nom est obligatoire");
+
+        const payload = { nom, description };
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `/api/activites/${id}` : '/api/activites';
+
+        try {
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                fermerModal();
+                chargerActivites();
+            } else {
+                const err = await res.json();
+                alert(err.error || "Erreur lors de l'enregistrement");
+            }
+        } catch(err) {
+            console.error(err);
+        }
+    }
+
+    async function supprimerActivite(id: string) {
+        if(!confirm("Supprimer cette activité ?")) return;
+
+        try {
+            const res = await fetch(`/api/activites/${id}`, { method: 'DELETE' });
+            if(res.ok) chargerActivites();
+            else {
+                const err = await res.json();
+                alert(err.error || "Erreur lors de la suppression");
+            }
+        } catch(err) { console.error(err); }
+    }
+</script>

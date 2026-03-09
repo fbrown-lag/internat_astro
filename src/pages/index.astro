@@ -1,0 +1,126 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import '../styles/style.css';
+---
+
+<Layout title="Dashboard | Internat">
+    <Header />
+
+    <main class="main-content">
+        <header class="page-context mb-3xl">
+            <h1 class="page-title-sm">Portail de Gestion</h1>
+            <p class="text-muted">Accédez rapidement aux différents modules de l'internat</p>
+        </header>
+
+        <div class="dashboard-grid">
+            <a href="/eleves" class="dashboard-card">
+                <div class="card-icon">👥</div>
+                <div class="card-content">
+                    <h3>Annuaire des Élèves</h3>
+                    <p>Gestion des dossiers et retours tardifs</p>
+                </div>
+            </a>
+
+            <a href="/repas" class="dashboard-card">
+                <div class="card-icon">🍴</div>
+                <div class="card-content">
+                    <h3>Gestion des Repas</h3>
+                    <p>Absences et exceptions alimentaires</p>
+                </div>
+            </a>
+
+            <a href="/repartition" class="dashboard-card">
+                <div class="card-icon">📊</div>
+                <div class="card-content">
+                    <h3>Répartition</h3>
+                    <p>Occupation des chambres</p>
+                </div>
+            </a>
+
+            <a href="/chambres" class="dashboard-card">
+                <div class="card-icon">🏠</div>
+                <div class="card-content">
+                    <h3>Infrastructures</h3>
+                    <p>Gestion des chambres</p>
+                </div>
+            </a>
+
+            <a href="/classes" class="dashboard-card">
+                <div class="card-icon">📚</div>
+                <div class="card-content">
+                    <h3>Classes</h3>
+                    <p>Configuration des classes</p>
+                </div>
+            </a>
+
+            <a href="/activites" class="dashboard-card">
+                <div class="card-icon">⚽</div>
+                <div class="card-content">
+                    <h3>Activités</h3>
+                    <p>Gestion des activités</p>
+                </div>
+            </a>
+
+            <a href="/responsables" class="dashboard-card">
+                <div class="card-icon">👤</div>
+                <div class="card-content">
+                    <h3>Responsables</h3>
+                    <p>Annuaire des responsables</p>
+                </div>
+            </a>
+
+            <a href="/demissionnaires" class="dashboard-card">
+                <div class="card-icon">📋</div>
+                <div class="card-content">
+                    <h3>Archives</h3>
+                    <p>Élèves démissionnaires</p>
+                </div>
+            </a>
+        </div>
+    </main>
+<style>
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: var(--space-lg);
+        padding-bottom: var(--space-3xl);
+    }
+
+    .dashboard-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-2xl);
+        padding: var(--space-xl);
+        text-decoration: none;
+        color: inherit;
+        transition: all var(--transition-base);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-md);
+    }
+
+    .dashboard-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+        border-color: var(--primary);
+    }
+
+    .card-icon {
+        font-size: 2.5rem;
+        line-height: 1;
+    }
+
+    .card-content h3 {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin: 0;
+        color: var(--text-main);
+    }
+
+    .card-content p {
+        font-size: 0.9rem;
+        color: var(--text-soft);
+        margin: 0;
+    }
+</style>

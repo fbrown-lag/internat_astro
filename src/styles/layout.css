@@ -1,0 +1,29 @@
+.header-nav {
+    background: var(--primary);
+    padding: var(--space-md) var(--space-xl);
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+    box-shadow: var(--shadow-md);
+}
+
+.header-nav h1 {
+    color: var(--text-on-primary);
+    font-size: 1.25rem;
+    letter-spacing: normal;
+    background: none;
+    -webkit-text-fill-color: initial;
+    filter: none;
+}
+
+.nav-links {
+    display: flex;
+    gap: var(--space-md);
+    margin-left: auto;
+}
+
+/* Main content wrapper */
+.main-layout {
+    flex: 1;
+    overflow-y: auto;
+}

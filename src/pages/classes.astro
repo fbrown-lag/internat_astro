@@ -1,0 +1,208 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Button from '../components/ui/Button.astro';
+import '../styles/style.css';
+---
+
+<Layout title="Gestion des Classes | Internat">
+    <Header />
+
+    <main class="main-content">
+        <header class="page-context mb-xl">
+            <h1 class="page-title-sm">Gestion des Classes</h1>
+            <p class="text-muted">Configuration et suivi des classes</p>
+        </header>
+
+        <div class="controls-bar mb-xl">
+            <div class="search-group">
+                <div class="form-group">
+                    <label for="cls_search">Recherche</label>
+                    <input type="text" id="cls_search" placeholder="Nom de classe, prof..." 
+                        style="padding:12px 16px; border:1px solid var(--border-color); border-radius:var(--radius-lg); outline:none; width:250px;">
+                </div>
+            </div>
+            <div class="flex-grow"></div>
+            <Button id="btnOpenAddClass" variant="primary">+ Nouvelle Classe</Button>
+        </div>
+
+        <div class="table-container">
+            <table class="luxury-table">
+                <thead>
+                    <tr>
+                        <th>NOM</th>
+                        <th>NIVEAU</th>
+                        <th>PROF. PRINCIPAL</th>
+                        <th>CPE RÉFÉRENT</th>
+                        <th style="width: 150px;">ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody id="classesTableBody">
+                    <tr><td colspan="5" style="text-align: center;">Chargement...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- MODAL ADD/EDIT CLASSE -->
+    <div id="modalClasse" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; justify-content:center; align-items:center;">
+        <div style="background: var(--bg-surface); padding:30px; border:1px solid var(--border-color); border-radius:var(--radius-xl); width:450px; box-shadow: var(--shadow-lg);">
+            <h3 id="classeModalTitle" style="color:var(--text-main); margin-top:0; font-size:1.3rem; font-weight:700;">Nouvelle Classe</h3>
+            <input type="hidden" id="edit_classe_id">
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <div>
+                    <label style="color:var(--text-main); font-size:0.875rem; font-weight:600; display:block; margin-bottom:5px;">NOM DE LA CLASSE *</label>
+                    <input type="text" id="cls_nom" placeholder="Ex: 2NDE1" style="width:100%; background:var(--bg-surface-alt); border:1px solid var(--border-color); color:var(--text-main); padding:10px; border-radius:var(--radius-md); outline:none;">
+                </div>
+                <div>
+                    <label style="color:var(--text-main); font-size:0.875rem; font-weight:600; display:block; margin-bottom:5px;">NIVEAU *</label>
+                    <select id="cls_niveau" style="width:100%; background:var(--bg-surface-alt); border:1px solid var(--border-color); color:var(--text-main); padding:10px; border-radius:var(--radius-md); outline:none;">
+                        <option value="Seconde">Seconde</option>
+                        <option value="Premiere">Premiere</option>
+                        <option value="Terminale">Terminale</option>
+                        <option value="BTS1">BTS1</option>
+                        <option value="BTS2">BTS2</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="color:var(--text-main); font-size:0.875rem; font-weight:600; display:block; margin-bottom:5px;">PROFESSEUR PRINCIPAL</label>
+                    <input type="text" id="cls_pp" style="width:100%; background:var(--bg-surface-alt); border:1px solid var(--border-color); color:var(--text-main); padding:10px; border-radius:var(--radius-md); outline:none;">
+                </div>
+                <div>
+                    <label style="color:var(--text-main); font-size:0.875rem; font-weight:600; display:block; margin-bottom:5px;">CPE RÉFÉRENT</label>
+                    <input type="text" id="cls_cpe" style="width:100%; background:var(--bg-surface-alt); border:1px solid var(--border-color); color:var(--text-main); padding:10px; border-radius:var(--radius-md); outline:none;">
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:10px;">
+                    <button id="btnCancelModal" class="btn btn-ghost">Annuler</button>
+                    <button id="btnSaveClasse" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</Layout>
+
+<script>
+    let allClasses: any[] = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+        chargerClasses();
+        document.getElementById('btnOpenAddClass')?.addEventListener('click', () => ouvrirModal());
+        document.getElementById('btnCancelModal')?.addEventListener('click', fermerModal);
+        document.getElementById('btnSaveClasse')?.addEventListener('click', sauvegarderClasse);
+        
+        document.getElementById('cls_search')?.addEventListener('input', (e) => {
+            const term = (e.target as HTMLInputElement).value.toLowerCase();
+            const rows = document.querySelectorAll('#classesTableBody tr');
+            rows.forEach(row => {
+                const text = row.textContent?.toLowerCase() || '';
+                (row as HTMLElement).style.display = text.includes(term) ? '' : 'none';
+            });
+        });
+    });
+
+    async function chargerClasses() {
+        try {
+            const res = await fetch('/api/classes');
+            const data = await res.json();
+            const tbody = document.getElementById('classesTableBody');
+            if(!tbody) return;
+
+            tbody.innerHTML = '';
+            if(data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Aucune classe enregistrée.</td></tr>';
+                return;
+            }
+
+            data.forEach((c: any) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><a href="/fiche_classe?nom=${encodeURIComponent(c.nom)}" class="table-link">${c.nom}</a></td>
+                    <td>${c.niveau || '-'}</td>
+                    <td>${c.prof_principal || '-'}</td>
+                    <td>${c.cpe_referent || '-'}</td>
+                    <td style="text-align:center;">
+                        <button class="btn-edit" style="color:var(--luxury-gold); background:none; border:none; cursor:pointer; font-size:1.2rem; margin-right:15px;">✏️</button>
+                        <button class="btn-delete" style="color:red; background:none; border:none; cursor:pointer; font-size:1.2rem;">✕</button>
+                    </td>
+                `;
+                
+                row.querySelector('.btn-edit')?.addEventListener('click', () => ouvrirModal(c));
+                row.querySelector('.btn-delete')?.addEventListener('click', () => supprimerClasse(c.id));
+                
+                tbody.appendChild(row);
+            });
+        } catch(err) { console.error(err); }
+    }
+
+    function ouvrirModal(cls: any = null) {
+        const modal = document.getElementById('modalClasse');
+        const title = document.getElementById('classeModalTitle');
+        const idInput = document.getElementById('edit_classe_id') as HTMLInputElement;
+        const nomInput = document.getElementById('cls_nom') as HTMLInputElement;
+        const niveauSelect = document.getElementById('cls_niveau') as HTMLSelectElement;
+        const ppInput = document.getElementById('cls_pp') as HTMLInputElement;
+        const cpeInput = document.getElementById('cls_cpe') as HTMLInputElement;
+
+        if (cls) {
+            title.textContent = "Modifier la Classe";
+            idInput.value = cls.id;
+            nomInput.value = cls.nom;
+            niveauSelect.value = cls.niveau;
+            ppInput.value = cls.prof_principal || '';
+            cpeInput.value = cls.cpe_referent || '';
+        } else {
+            title.textContent = "Nouvelle Classe";
+            idInput.value = '';
+            nomInput.value = '';
+            niveauSelect.value = 'Seconde';
+            ppInput.value = '';
+            cpeInput.value = '';
+        }
+        modal.style.display = 'flex';
+    }
+
+    function fermerModal() {
+        document.getElementById('modalClasse').style.display = 'none';
+    }
+
+    async function sauvegarderClasse() {
+        const id = (document.getElementById('edit_classe_id') as HTMLInputElement).value;
+        const nom = (document.getElementById('cls_nom') as HTMLInputElement).value.trim();
+        const niveau = (document.getElementById('cls_niveau') as HTMLSelectElement).value;
+        const prof_principal = (document.getElementById('cls_pp') as HTMLInputElement).value.trim();
+        const cpe_referent = (document.getElementById('cls_cpe') as HTMLInputElement).value.trim();
+
+        if (!nom || !niveau) return alert("Nom et Niveau sont obligatoires");
+
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `/api/classes/${id}` : '/api/classes';
+
+        try {
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nom, niveau, prof_principal, cpe_referent })
+            });
+
+            if (res.ok) {
+                fermerModal();
+                chargerClasses();
+            } else {
+                const err = await res.json();
+                alert(err.error || "Erreur lors de l'enregistrement");
+            }
+        } catch(err) { console.error(err); }
+    }
+
+    async function supprimerClasse(id: string) {
+        if(!confirm("Supprimer cette classe ?")) return;
+        try {
+            const res = await fetch(`/api/classes/${id}`, { method: 'DELETE' });
+            if(res.ok) chargerClasses();
+            else {
+                const err = await res.json();
+                alert(err.error || "Erreur lors de la suppression");
+            }
+        } catch(err) { console.error(err); }
+    }
+</script>

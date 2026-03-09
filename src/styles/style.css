@@ -1,0 +1,10 @@
+@import './variables.css';
+@import './base.css';
+@import './components.css';
+
+/* We are temporarily keeping these to allow gradual refactoring, 
+   but they will be monitored for conflicts. */
+@import './layout.css';
+@import './forms.css';
+@import './tables.css';
+@import './utils.css';

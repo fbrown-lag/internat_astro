@@ -1,0 +1,184 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import '../styles/style.css';
+---
+
+<Layout title="Fiche Responsable | Internat">
+    <Header>
+        <span id="nomTitre" style="color:var(--luxury-gold); font-size:1.2rem; font-weight:bold; letter-spacing:1px; margin-right:auto;">Chargement...</span>
+        <button id="btnSupprimer" class="btn-back" style="border-color: var(--danger); color: var(--danger);">Supprimer la fiche</button>
+        <button id="btnAnnuler" class="btn-back" style="display: none; background: #666;">Annuler</button>
+        <button id="btnEditer" class="btn-back" style="background: var(--luxury-gold); color: black;">Modifier</button>
+        <a href="eleves" class="btn-back">Retour Liste Eleves</a>
+    </Header>
+
+    <div class="profile-container">
+        <div class="profile-card">
+            <h3>Coordonnées du Responsable</h3>
+            <div class="info-grid">
+                <div class="info-item"><label>Nom</label><span id="view_nom"></span></div>
+                <div class="info-item"><label>Prénom</label><span id="view_prenom"></span></div>
+                <div class="info-item"><label>Téléphone</label><span id="view_tel"></span></div>
+                <div class="info-item"><label>Adresse</label><span id="view_adresse"></span></div>
+            </div>
+        </div>
+
+        <div class="profile-card">
+            <h3>Élèves sous responsabilité</h3>
+            <div id="liste_eleves_rattaches" class="planning-display">
+            </div>
+        </div>
+    </div>
+</Layout>
+
+<script>
+    let isEditing = false;
+    let currentRespData: any = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadResponsableData();
+        
+        document.getElementById('btnAnnuler')?.addEventListener('click', () => {
+            if(confirm("Annuler les modifications ?")) location.reload(); 
+        });
+
+        document.getElementById('btnEditer')?.addEventListener('click', () => {
+            if (!isEditing) {
+                isEditing = true;
+                const btnAnnuler = document.getElementById('btnAnnuler');
+                if(btnAnnuler) btnAnnuler.style.display = "block";
+                
+                const btn = document.getElementById('btnEditer');
+                if(btn) {
+                    btn.textContent = "Enregistrer";
+                    (btn as HTMLElement).style.background = "#28a745";
+                }
+                
+                // Titre
+                const titre = document.getElementById('nomTitre');
+                if(titre) {
+                    titre.innerHTML = `
+                        <input type="text" id="input_nom_titre" value="${currentRespData.nom}" 
+                            style="width:180px; background:transparent; color:#f9e29c !important; border:1px solid #d4af37 !important; padding:8px; text-transform: uppercase; font-size: 1.2rem; font-weight: bold; outline: none;">
+                        <input type="text" id="input_prenom_titre" value="${currentRespData.prenom}" 
+                            style="width:180px; background:transparent; color:#ffffff !important; border:1px solid #444 !important; padding:8px; font-size: 1.2rem; outline: none;">
+                    `;
+                }
+
+                makeEditable('view_nom', currentRespData.nom);
+                makeEditable('view_prenom', currentRespData.prenom);
+                makeEditable('view_tel', currentRespData.telephone);
+                makeEditable('view_adresse', currentRespData.adresse);
+            } else {
+                saveResponsable();
+            }
+        });
+
+        document.getElementById('btnSupprimer')?.addEventListener('click', deleteResponsable);
+    });
+
+    async function loadResponsableData() {
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get('id');
+        if (!id) return;
+
+        try {
+            const res = await fetch(`/api/responsables/${id}`);
+            const data = await res.json();
+            currentRespData = data;
+
+            // Titre
+            const titre = document.getElementById('nomTitre');
+            if(titre) titre.textContent = `${(data.nom || '').toUpperCase()} ${data.prenom || ''}`;
+            
+            // Vue
+            setText('view_nom', data.nom || '-');
+            setText('view_prenom', data.prenom || '-');
+            setText('view_adresse', data.adresse || '-');
+            
+            const tel = data.telephone || '';
+            setText('view_tel', tel.replace(/(\d{2})(?=\d)/g, '$1.') || 'Non renseigné');
+
+            renderEleves(data.eleves || []);
+        } catch (err) { console.error(err); }
+    }
+
+    function setText(id: string, text: string) {
+        const el = document.getElementById(id);
+        if(el) el.textContent = text;
+    }
+
+    function renderEleves(eleves: any[]) {
+        const div = document.getElementById('liste_eleves_rattaches');
+        if(!div) return;
+
+        if (eleves.length === 0) {
+            div.innerHTML = '<p style="color: #666; padding: 10px;">Aucun élève rattaché.</p>';
+            return;
+        }
+        div.innerHTML = eleves.map(e => `
+            <div class="planning-row" style="display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #1a1a1a;">
+                <span style="color: var(--luxury-gold); font-weight: bold;">${e.nom.toUpperCase()} ${e.prenom}</span>
+                <span style="color: #888; font-size: 0.8rem;">${e.classe || 'Sans classe'}</span>
+            </div>
+        `).join('');
+    }
+
+    function makeEditable(id: string, val: string) {
+        const el = document.getElementById(id);
+        if(el) el.innerHTML = `
+            <input type="text" id="input_${id}" value="${val || ''}" 
+            style="width:100%; background:transparent; color:white; border:1px solid #444; padding:5px;">`;
+    }
+
+    async function saveResponsable() {
+        if(!currentRespData) return;
+        const getNameVal = (id:string) => (document.getElementById(id) as HTMLInputElement).value;
+        const getVal = (id:string) => (document.getElementById(id) as HTMLInputElement).value;
+
+        const payload = {
+            nom: getNameVal('input_nom_titre'),
+            prenom: getNameVal('input_prenom_titre'),
+            telephone: getVal('input_view_tel'),
+            adresse: getVal('input_view_adresse')
+        };
+
+        try {
+            const res = await fetch(`/api/responsables/${currentRespData.id}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+
+            if(res.ok) {
+                alert("Responsable mis à jour !");
+                location.reload();
+            }
+        } catch (err) { console.error(err); }
+    }
+
+    async function deleteResponsable() {
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get('id');
+
+        if (!id || !confirm("Supprimer définitivement ce responsable ?")) return;
+
+        try {
+            const res = await fetch(`/api/responsables/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (res.ok) {
+                alert("Responsable supprimé.");
+                window.location.href = "eleves";
+            } else {
+                const errorData = await res.json();
+                alert("Erreur : " + errorData.error);
+            }
+        } catch (err) {
+            console.error("Erreur réseau :", err);
+            alert("Impossible de contacter le serveur.");
+        }
+    }
+</script>

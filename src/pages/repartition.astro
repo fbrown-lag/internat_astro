@@ -1,0 +1,247 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Button from '../components/ui/Button.astro';
+import Card from '../components/ui/Card.astro';
+import '../styles/style.css';
+---
+
+<Layout title="Répartition des Chambres | Internat">
+    <Header />
+    <main class="main-content">
+        <header class="page-context mb-xl flex justify-between items-end">
+            <div>
+                <h1 class="page-title-sm">Répartition des Chambres</h1>
+                <p class="text-muted">Visualisation graphique de l'occupation par bâtiment</p>
+            </div>
+            <Button id="btnPrint" variant="secondary">Extraire au format CSV</Button>
+        </header>
+
+        <div id="container-repartition">
+        <p class="text-center text-muted">Chargement de la répartition...</p>
+    </div>
+    </main>
+</Layout>
+
+<script>
+    // Include the repartition logic here or import it
+    // We will keep it inline for simplicity in this step, matching previous architecture but adapted for Astro
+
+    document.addEventListener('DOMContentLoaded', () => {
+        chargerRepartition();
+        document.getElementById('btnPrint')?.addEventListener('click', exportToCSV);
+    });
+
+    // Global storage for CSV export (using window as before, or module scope)
+    let repartitionData: any = {};
+
+    async function exportToCSV() {
+        const data = repartitionData;
+        if (!data || Object.keys(data).length === 0) {
+            alert("Aucune donnée à exporter.");
+            return;
+        }
+
+        let csvContent = ""; // BOM for Excel UTF-8
+
+        // Helper to escape CSV fields
+        const escapeCsv = (str: any) => {
+            if (str === null || str === undefined) return "";
+            return `"${String(str).replace(/"/g, '""')}"`;
+        };
+
+        // Iterate over Buildings (Bat A, Bat B)
+        Object.keys(data).sort().forEach(bat => {
+            const etages = data[bat];
+
+            // Iterate over Floors
+            Object.keys(etages).sort().forEach((etage: string) => {
+                const sectionTitle = `Bâtiment ${bat} - ${etage}`;
+                
+                // Header Row: [Title, "", "", "", "", "Dim", "Lun", "Mar", "Mer", "Jeu"]
+                csvContent += `${escapeCsv(sectionTitle)};;;;;Dim;Lun;Mar;Mer;Jeu\n`;
+
+                const chambres = etages[etage];
+                // Sort rooms by number
+                chambres.sort((a: any, b: any) => a.numero - b.numero);
+
+                // Calculate totals for this floor
+                let totalEleves = 0;
+                let totalDimanche = 0;
+
+                chambres.forEach((c: any) => {
+                    if (c.eleves) {
+                        totalEleves += c.eleves.length;
+                        totalDimanche += c.eleves.filter((e: any) => e.dimanche).length;
+                    }
+                });
+
+                chambres.forEach((chambre: any) => {
+                    // Determine capacity (default to student count if invalid capacity, though DB has it)
+                    const capacite = Math.max(chambre.capacite || 0, chambre.eleves.length);
+
+                    // ROOM HEADER
+                    csvContent += `Chambre ${chambre.numero};;;;;;;;;\n`;
+
+                    for (let i = 0; i < capacite; i++) {
+                        const eleve = chambre.eleves[i];
+                        if (eleve) {
+                            const dimancheMark = eleve.dimanche ? "D" : "";
+                            // Student Row
+                            csvContent += `${escapeCsv(eleve.nom || "")};${escapeCsv(eleve.prenom || "")};${escapeCsv(eleve.classe || "")};;${dimancheMark};;;;;\n`;
+                        } else {
+                            // Empty Slot Row
+                            csvContent += `;;;;;;;;;\n`;
+                        }
+                    }
+
+                    // REMARQUE ROW
+                    csvContent += `Remarque :;;;;;;;;;\n`;
+                });
+
+                // Footer Row (Totals) - Matching columns D and E
+                // Row starts with Title in A, then Empty B, C. D gets Total, E gets Dimanche.
+                csvContent += `${escapeCsv(sectionTitle)};-;;${totalEleves};${totalDimanche};;;;;\n`;
+
+                // Section Spacer
+                csvContent += `;;;;;;;;;\n`;
+            });
+        });
+
+        // Create Download Link
+        const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", "repartition_internat.csv");
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    async function chargerRepartition() {
+        try {
+            // Using the new Astro API endpoint
+            const res = await fetch('/api/chambres/repartition');
+            if (!res.ok) throw new Error("Erreur lors de la récupération des données");
+            
+            const data = await res.json();
+            const container = document.getElementById('container-repartition');
+            if (container) container.innerHTML = '';
+
+            if (!data || data.length === 0) {
+                if (container) container.innerHTML = '<p style="text-align:center; color:white;">Aucune donnée de chambre disponible.</p>';
+                return;
+            }
+
+            // Regroupement des données : Batiment -> Etage -> Chambre
+            const repartition: any = {};
+
+            data.forEach((row: any) => {
+                const bat = row.bat ? row.bat.trim() : 'Inconnu';
+                const etage = row.etage !== null ? `Étage ${row.etage}` : 'RDC';
+                const num = row.numero;
+
+                if (!repartition[bat]) repartition[bat] = {};
+                if (!repartition[bat][etage]) repartition[bat][etage] = [];
+
+                // Recherche si la chambre existe déjà dans ce groupe
+                let chambre = repartition[bat][etage].find((c: any) => c.numero === num);
+                
+                if (!chambre) {
+                    chambre = {
+                        numero: num,
+                        capacite: row.capacite,
+                        eleves: []
+                    };
+                    repartition[bat][etage].push(chambre);
+                }
+
+                // Ajout de l'élève s'il y en a un
+                if (row.eleve_id) {
+                    chambre.eleves.push({
+                        nom: row.nom,
+                        prenom: row.prenom,
+                        classe: row.classe_nom,
+                        dimanche: row.dimanche,
+                        activite_id: row.activite_id
+                    });
+                }
+            });
+
+            repartitionData = repartition; // Save for CSV export
+
+            // Affichage
+            Object.keys(repartition).sort().forEach(bat => {
+                const sectionBat = document.createElement('div');
+                sectionBat.style.marginBottom = "40px";
+                sectionBat.innerHTML = `<h2 class="text-primary" style="border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 24px;">Bâtiment ${bat}</h2>`;
+
+                const etages = repartition[bat];
+                Object.keys(etages).sort().forEach((etage: string) => {
+                    const sectionEtage = document.createElement('div');
+                    sectionEtage.style.marginBottom = "30px";
+                    sectionEtage.innerHTML = `<h3 class="text-secondary" style="margin-bottom: 16px; font-size: 1.1rem; border-left: 4px solid var(--primary); padding-left: 12px;">${etage}</h3>`;
+
+                    const grid = document.createElement('div');
+                    grid.style.display = "grid";
+                    grid.style.gridTemplateColumns = "repeat(auto-fill, minmax(280px, 1fr))";
+                    grid.style.gap = "20px";
+
+                    etages[etage].forEach((chambre: any) => {
+                        const card = document.createElement('div');
+                        card.className = 'card';
+                        card.style.padding = '0';
+                        card.style.overflow = 'hidden';
+
+                        // Indicateur visuel de remplissage
+                        const isFull = chambre.eleves.length >= chambre.capacite;
+                        const isEmpty = chambre.eleves.length === 0;
+                        const statusColor = isFull ? "var(--danger)" : (isEmpty ? "var(--success)" : "var(--warning)"); 
+                        
+                        const listeEleves = chambre.eleves.length > 0 
+                            ? chambre.eleves.map((e: any) => {
+                                const hasActivite = e.activite_id !== null;
+                                return `
+                                <div style="margin-bottom:12px; padding-left:12px; border-left:2px solid ${hasActivite ? 'var(--info)' : 'var(--primary)'};">
+                                    <div style="font-weight:600; color:${hasActivite ? 'var(--info)' : 'var(--text-main)'}; font-size:0.95rem;">${(e.nom || '').toUpperCase()} ${e.prenom || ''}</div>
+                                    <div style="font-size:0.8rem; color:var(--text-muted);">${e.classe || 'Classe inconnue'}</div>
+                                </div>
+                            `;}).join('')
+                            : '<div style="color:var(--text-muted); text-align:center; padding:20px 0; font-style:italic; font-size: 0.85rem;">Chambre libre</div>';
+
+                        card.innerHTML = `
+                            <div style="background:var(--bg-app); padding:12px 16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color);">
+                                <span style="font-weight:700; color:var(--primary); font-size:1rem;">Numéro ${chambre.numero}</span>
+                                <span style="font-size:0.75rem; font-weight: 600; background:white; color:${statusColor}; padding:2px 8px; border-radius:12px; border:1px solid ${statusColor};">
+                                    ${chambre.eleves.length} / ${chambre.capacite}
+                                </span>
+                            </div>
+                            <div style="padding:16px;">
+                                ${listeEleves}
+                            </div>
+                        `;
+                        grid.appendChild(card);
+                    });
+
+                    sectionEtage.appendChild(grid);
+                    sectionBat.appendChild(sectionEtage);
+                });
+
+                if (container) container.appendChild(sectionBat);
+            });
+
+        } catch (err: any) {
+            console.error("Erreur chargement répartition:", err);
+            const container = document.getElementById('container-repartition');
+            if (container) {
+                container.innerHTML = 
+                `<div style="text-align:center; padding:50px;">
+                    <p style="color:#ef4444; font-size:1.2rem;">Impossible de charger les données.</p>
+                    <p style="color:#666;">${err.message}</p>
+                 </div>`;
+            }
+        }
+    }
+</script>

@@ -1,0 +1,205 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Header from "../components/Header.astro";
+import Button from "../components/ui/Button.astro";
+import "../styles/style.css";
+---
+
+<Layout title="Annulations Exceptionnelles | Internat">
+    <Header />
+    <main class="main-content">
+        <header class="page-context mb-xl">
+            <h1 class="page-title-sm">Annulations Exceptionnelles</h1>
+            <p class="text-muted">
+                Liste de toutes les annulations de repas enregistrées
+            </p>
+        </header>
+
+        <div class="controls-bar mb-xl">
+            <div class="search-group">
+                <div class="form-group">
+                    <label for="annul_search">Recherche rapide</label>
+                    <input
+                        type="text"
+                        id="annul_search"
+                        placeholder="Nom, prénom, classe..."
+                        style="padding:12px 16px; border:1px solid var(--border-color); border-radius:var(--radius-lg); outline:none; width:300px;"
+                    />
+                </div>
+            </div>
+            <Button href="/repas" variant="secondary">Retour aux repas</Button>
+        </div>
+
+        <div class="table-container">
+            <table class="luxury-table">
+                <thead>
+                    <tr>
+                        <th>ÉLÈVE</th>
+                        <th>CLASSE</th>
+                        <th>MODE</th>
+                        <th>DÉTAILS</th>
+                        <th>PÉRIODE / JOUR</th>
+                        <th>REPAS FORCÉ</th>
+                        <th style="width: 100px; text-align: center;"
+                            >ACTIONS</th
+                        >
+                    </tr>
+                </thead>
+                <tbody id="annulationsTableBody">
+                    <tr
+                        ><td colspan="7" style="text-align: center;"
+                            >Chargement des données...</td
+                        ></tr
+                    >
+                </tbody>
+            </table>
+        </div>
+    </main>
+</Layout>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        chargerAnnulations();
+
+        // Gestion de la recherche dynamique
+        document
+            .getElementById("annul_search")
+            ?.addEventListener("input", (e) => {
+                const term = (e.target as HTMLInputElement).value.toLowerCase();
+                const rows = document.querySelectorAll(
+                    "#annulationsTableBody tr",
+                );
+                rows.forEach((row) => {
+                    const text = row.textContent?.toLowerCase() || "";
+                    (row as HTMLElement).style.display = text.includes(term)
+                        ? ""
+                        : "none";
+                });
+            });
+    });
+
+    async function chargerAnnulations() {
+        try {
+            const res = await fetch("/api/repas/annulations");
+            const data = await res.json();
+            const tbody = document.getElementById("annulationsTableBody");
+            if (!tbody) return;
+
+            tbody.innerHTML = "";
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML =
+                    '<tr><td colspan="7" style="text-align:center;">Aucune annulation enregistrée.</td></tr>';
+                return;
+            }
+
+            data.forEach((a: any) => {
+                const row = document.createElement("tr");
+
+                // Calcul des labels et périodes (Logique du premier fichier)
+                const modeLabel =
+                    a.mode === "jour"
+                        ? "PONCTUEL"
+                        : a.mode === "periode"
+                          ? "PÉRIODE"
+                          : "HYBRIDE";
+
+                const periodeDétail =
+                    a.mode === "jour"
+                        ? `Le ${formatDate(a.date_debut || a.jour)}`
+                        : `Du ${formatDate(a.date_debut)} au ${formatDate(a.date_fin)}`;
+
+                const typeDétail =
+                    a.mode === "hybride"
+                        ? "Récurrence (Période)"
+                        : a.mode === "periode"
+                          ? "Date à Date"
+                          : "Jour unique";
+
+                row.innerHTML = `
+                    <td style="color:var(--bright-gold); font-weight:bold;">
+                        <strong>${a.nom?.toUpperCase() || "-"}</strong> ${a.prenom || "-"}
+                    </td>
+                    <td>${a.classe || "-"}</td>
+                    <td><span class="badge-mode">${modeLabel}</span></td>
+                    <td class="text-muted" style="font-size: 0.9rem;">${typeDétail}</td>
+                    <td>${periodeDétail}</td>
+                    <td>${a.repas_force || "Aucun"}</td>
+                    <td style="text-align:center;">
+                        <button class="btn-delete" title="Supprimer">✕</button>
+                    </td>
+                `;
+
+                // Utilisation de l'ID correct selon votre DB (id ou annulation_id)
+                const idToDelete = a.id || a.annulation_id;
+                row.querySelector(".btn-delete")?.addEventListener(
+                    "click",
+                    () => supprimerAnnulation(idToDelete),
+                );
+                tbody.appendChild(row);
+            });
+        } catch (err) {
+            console.error("Erreur chargement:", err);
+            const tbody = document.getElementById("annulationsTableBody");
+            if (tbody)
+                tbody.innerHTML =
+                    '<tr><td colspan="7" style="color:red; text-align:center;">Erreur de connexion aux données.</td></tr>';
+        }
+    }
+
+    function formatDate(dateStr: string) {
+        if (!dateStr || dateStr === "-") return "-";
+        const d = new Date(dateStr);
+        return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString("fr-FR");
+    }
+
+    async function supprimerAnnulation(id: any) {
+        try {
+            // Utilisation du chemin dynamique (REST)
+            const res = await fetch(`/api/repas/annulations/${id}`, {
+                method: "DELETE",
+            });
+
+            if (res.ok) {
+                // Recharger les données si succès
+                await chargerAnnulations();
+            } else {
+                const errorData = await res.text(); // Lire en texte pour voir le HTML d'erreur si besoin
+                console.error("Détails erreur:", errorData);
+                alert(
+                    "Erreur lors de la suppression (Code: " + res.status + ")",
+                );
+            }
+        } catch (e) {
+            console.error("Erreur réseau:", e);
+        }
+    }
+</script>
+
+<style>
+    /* Styles additionnels pour le badge */
+    .badge-mode {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        font-weight: bold;
+    }
+    .btn-delete {
+        color: #ff4d4d;
+        background: none;
+        border: 1px solid rgba(255, 77, 77, 0.3);
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .btn-delete:hover {
+        background: #ff4d4d;
+        color: white;
+    }
+</style>

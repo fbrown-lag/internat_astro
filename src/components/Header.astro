@@ -1,0 +1,271 @@
+---
+const { pathname } = Astro.url;
+const isActive = (path: string) => pathname === path || pathname === path + '/';
+
+// Determine page title from pathname
+const getPageTitle = (path: string): string => {
+    if (path === '/' || path === '') return 'Accueil';
+    if (path.startsWith('/eleves')) return 'Annuaire des Élèves';
+    if (path.startsWith('/repas')) return 'Gestion des Repas';
+    if (path.startsWith('/repartition')) return 'Répartition';
+    if (path.startsWith('/classes')) return 'Gestion des Classes';
+    if (path.startsWith('/activites')) return 'Gestion des Activités';
+    if (path.startsWith('/chambres')) return 'Gestion des Chambres';
+    if (path.startsWith('/responsables')) return 'Gestion des Responsables';
+    if (path.startsWith('/demissionnaires')) return 'Élèves Démissionnaires';
+    if (path.startsWith('/fiche_eleve')) return 'Fiche Élève';
+    if (path.startsWith('/fiche_responsable')) return 'Fiche Responsable';
+    if (path.startsWith('/fiche_classe')) return 'Fiche Classe';
+    return 'Accueil';
+};
+
+const currentPageTitle = getPageTitle(pathname);
+---
+
+<header class="header-main">
+    <div class="header-inner">
+        <div class="left-group">
+            <a href="/" class="brand">
+                <span class="brand-logo">logo Argouges</span>
+                <span class="brand-context">Internat</span>
+            </a>
+            <div class="header-breadcrumb">
+                Vous êtes ici : <strong>{currentPageTitle}</strong>
+            </div>
+        </div>
+
+        <nav class="nav-main">
+            <a href="/eleves" class:list={['nav-item', { active: isActive('/eleves') }]}>
+                <span class="nav-ico">👥</span> Élèves
+            </a>
+            <a href="/repas" class:list={['nav-item', { active: isActive('/repas') }]}>
+                <span class="nav-ico">🍴</span> Repas
+            </a>
+            <a href="/repartition" class:list={['nav-item', { active: isActive('/repartition') }]}>
+                <span class="nav-ico">📊</span> Répartition
+            </a>
+            
+            <div class="nav-dropdown-wrapper">
+                <button class="nav-item dropdown-trigger">
+                    🛠 Admin
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m6 9 6 6 6-6"/>
+                    </svg>
+                </button>
+                <div class="dropdown-menu">
+                    <div class="dropdown-section">
+                        <a href="/classes">Classes</a>
+                        <a href="/activites">Activités</a>
+                        <a href="/chambres">Chambres</a>
+                        <a href="/responsables">Responsables</a>
+                        <a href="/demissionnaires">Démissionnaires</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <div class="header-actions">
+            <a href="/api/auth/logout" class="action-btn-logout" title="Se déconnecter">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+            </a>
+        </div>
+    </div>
+</header>
+
+<style>
+    .header-main {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        background: var(--glass-bg);
+        backdrop-filter: var(--glass-blur);
+        height: 80px;
+        display: flex;
+        align-items: center;
+        color: var(--text-main);
+        box-shadow: 0 1px 12px rgba(0,0,0,0.08);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .header-inner {
+        max-width: 100%;
+        width: 100%;
+        margin: 0;
+        padding: 0 var(--space-md);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .left-group {
+        display: flex;
+        align-items: center;
+        gap: var(--space-xl);
+    }
+
+    .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        color: var(--primary);
+    }
+
+    .brand-logo {
+        font-weight: 800;
+        font-size: 1.5rem;
+        line-height: 1;
+        letter-spacing: -0.05em;
+    }
+
+    .brand-context {
+        font-size: 0.65rem;
+        font-weight: 400;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        opacity: 0.8;
+    }
+
+    .header-breadcrumb {
+        font-size: 0.75rem;
+        opacity: 0.9;
+        display: flex;
+        gap: 8px;
+        align-items: baseline;
+    }
+
+    .nav-main {
+        display: flex;
+        align-items: center;
+        height: 100%;
+    }
+
+    .nav-item {
+        padding: 0 24px;
+        height: 48px;
+        color: var(--text-main);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+        border-radius: var(--radius-full);
+        background: transparent;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .nav-item:hover {
+        background: var(--bg-surface-alt);
+    }
+
+    .nav-item.active {
+        background: var(--bg-surface-alt);
+        color: var(--primary);
+    }
+
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+        gap: 20px;
+        padding: 20px 0;
+        align-items: start; /* PREVENT VERTICAL STRETCH */
+    }
+
+    .stat-card {
+        background: #008284; /* Solid Isidoor Teal */
+        color: white;
+        text-decoration: none;
+        padding: 24px;
+        border-radius: 4px;
+        display: grid;
+        grid-template-columns: 60px 1fr 40px;
+        align-items: center;
+        gap: 16px;
+        transition: transform 0.2s, background 0.2s;
+        border: none;
+        height: auto;
+    }
+
+    .stat-card:hover {
+        background: #006666;
+        transform: scale(1.02);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+    }
+
+    .card-alt {
+        background: #4db6ac; 
+    }
+
+    .nav-ico {
+        font-size: 1.1rem;
+    }
+
+    /* Dropdown Logic */
+    .nav-dropdown-wrapper {
+        position: relative;
+        height: 100%;
+    }
+
+    .dropdown-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background: white;
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-xl);
+        min-width: 200px;
+        padding: 8px;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.2s;
+        transform: translateY(10px);
+    }
+
+    .nav-dropdown-wrapper:hover .dropdown-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    .dropdown-section a {
+        display: block;
+        padding: 10px 16px;
+        color: var(--text-soft);
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-weight: 600;
+        border-radius: var(--radius-sm);
+    }
+
+    .dropdown-section a:hover {
+        background: var(--bg-surface-alt);
+        color: var(--primary);
+    }
+
+    .header-actions {
+        display: flex;
+        align-items: center;
+    }
+
+    .action-btn-logout {
+        color: var(--text-soft);
+        text-decoration: none;
+        padding: 10px;
+        border-radius: var(--radius-full);
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        background: transparent;
+        border: 1px solid var(--border-color);
+    }
+
+    .action-btn-logout:hover {
+        background: var(--bg-surface-alt);
+        border-color: var(--text-main);
+        color: var(--text-main);
+    }
+</style>

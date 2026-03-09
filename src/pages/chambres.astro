@@ -1,0 +1,207 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Button from '../components/ui/Button.astro';
+import '../styles/style.css';
+---
+
+<Layout title="Gestion des Chambres | Internat">
+    <Header />
+
+    <main class="main-content">
+        <header class="page-context mb-xl">
+            <h1 class="page-title-sm">Gestion des Chambres</h1>
+            <p class="text-muted">Configuration et suivi des infrastructures</p>
+        </header>
+
+        <div class="controls-bar mb-xl">
+            <div class="search-group">
+                <div class="form-group">
+                    <label for="ch_search">Recherche</label>
+                    <input type="text" id="ch_search" placeholder="Numéro, bâtiment..." 
+                        style="padding:12px 16px; border:1px solid var(--border-color); border-radius:var(--radius-lg); outline:none; width:250px;">
+                </div>
+            </div>
+            <div class="flex-grow"></div>
+            <Button id="btnOpenAddRoom" variant="primary">+ Nouvelle Chambre</Button>
+        </div>
+
+        <div class="table-container">
+            <table class="luxury-table">
+                <thead>
+                    <tr>
+                        <th>BÂTIMENT</th>
+                        <th>ÉTAGE</th>
+                        <th>NUMÉRO</th>
+                        <th>CAPACITÉ</th>
+                        <th style="width: 150px;">ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody id="chambresTableBody">
+                    <tr><td colspan="5" style="text-align: center;">Chargement...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- MODAL ADD/EDIT CHAMBRE -->
+    <div id="modalChambre" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; justify-content:center; align-items:center;">
+        <div style="background: var(--bg-surface); padding:30px; border:1px solid var(--border-color); border-radius:var(--radius-xl); width:400px; box-shadow: var(--shadow-lg);">
+            <h3 id="chambreModalTitle" style="color:var(--text-main); margin-top:0; font-size:1.3rem; font-weight:700;">Nouvelle Chambre</h3>
+            <input type="hidden" id="edit_ch_id">
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <div style="display:flex; gap:10px;">
+                    <div style="flex:1;">
+                        <label style="color:var(--text-main); font-size:0.875rem; font-weight:600; display:block; margin-bottom:5px;">BÂTIMENT *</label>
+                        <select id="ch_bat" style="width:100%; background:var(--bg-surface-alt); border:1px solid var(--border-color); color:var(--text-main); padding:10px; border-radius:var(--radius-md); outline:none;">
+                            <option value="A">Bâtiment A</option>
+                            <option value="B">Bâtiment B</option>
+                            <option value="C">Bâtiment C</option>
+                        </select>
+                    </div>
+                    <div style="flex:1;">
+                        <label style="color:var(--text-main); font-size:0.875rem; font-weight:600; display:block; margin-bottom:5px;">ÉTAGE *</label>
+                        <input type="number" id="ch_etage" value="0" style="width:100%; background:var(--bg-surface-alt); border:1px solid var(--border-color); color:var(--text-main); padding:10px; border-radius:var(--radius-md); outline:none;">
+                    </div>
+                </div>
+                <div>
+                    <label style="color:var(--text-main); font-size:0.875rem; font-weight:600; display:block; margin-bottom:5px;">NUMÉRO DE CHAMBRE *</label>
+                    <input type="number" id="ch_num" style="width:100%; background:var(--bg-surface-alt); border:1px solid var(--border-color); color:var(--text-main); padding:10px; border-radius:var(--radius-md); outline:none;">
+                </div>
+                <div>
+                    <label style="color:var(--text-main); font-size:0.875rem; font-weight:600; display:block; margin-bottom:5px;">CAPACITÉ (ÉLÈVES)</label>
+                    <input type="number" id="ch_cap" value="4" style="width:100%; background:var(--bg-surface-alt); border:1px solid var(--border-color); color:var(--text-main); padding:10px; border-radius:var(--radius-md); outline:none;">
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:10px;">
+                    <button id="btnCancelModal" class="btn btn-ghost">Annuler</button>
+                    <button id="btnSaveChambre" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</Layout>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        chargerChambres();
+        document.getElementById('btnOpenAddRoom')?.addEventListener('click', () => ouvrirModal());
+        document.getElementById('btnCancelModal')?.addEventListener('click', fermerModal);
+        document.getElementById('btnSaveChambre')?.addEventListener('click', sauvegarderChambre);
+        
+        // Search functionality
+        document.getElementById('ch_search')?.addEventListener('input', (e) => {
+            const term = (e.target as HTMLInputElement).value.toLowerCase();
+            const rows = document.querySelectorAll('#chambresTableBody tr');
+            rows.forEach(row => {
+                const text = row.textContent?.toLowerCase() || '';
+                (row as HTMLElement).style.display = text.includes(term) ? '' : 'none';
+            });
+        });
+    });
+
+    async function chargerChambres() {
+        try {
+            const res = await fetch('/api/chambres');
+            const data = await res.json();
+            const tbody = document.getElementById('chambresTableBody');
+            if(!tbody) return;
+
+            tbody.innerHTML = '';
+            if(data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Aucune chambre enregistrée.</td></tr>';
+                return;
+            }
+
+            data.forEach((c: any) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>Bâtiment ${c.bat}</td>
+                    <td>${c.etage === 0 ? 'RDC' : 'Étage ' + c.etage}</td>
+                    <td style="color:var(--bright-gold); font-weight:bold;">${c.numero}</td>
+                    <td>${c.capacite} places</td>
+                    <td style="text-align:center;">
+                        <button class="btn-edit" style="color:var(--luxury-gold); background:none; border:none; cursor:pointer; font-size:1.2rem; margin-right:15px;">✏️</button>
+                        <button class="btn-delete" style="color:red; background:none; border:none; cursor:pointer; font-size:1.2rem;">✕</button>
+                    </td>
+                `;
+                
+                row.querySelector('.btn-edit')?.addEventListener('click', () => ouvrirModal(c));
+                row.querySelector('.btn-delete')?.addEventListener('click', () => supprimerChambre(c.id));
+                
+                tbody.appendChild(row);
+            });
+        } catch(err) { console.error(err); }
+    }
+
+    function ouvrirModal(ch: any = null) {
+        const modal = document.getElementById('modalChambre');
+        const title = document.getElementById('chambreModalTitle');
+        const idInput = document.getElementById('edit_ch_id') as HTMLInputElement;
+        const batSelect = document.getElementById('ch_bat') as HTMLSelectElement;
+        const etageInput = document.getElementById('ch_etage') as HTMLInputElement;
+        const numInput = document.getElementById('ch_num') as HTMLInputElement;
+        const capInput = document.getElementById('ch_cap') as HTMLInputElement;
+
+        if (ch) {
+            title.textContent = "Modifier la Chambre";
+            idInput.value = ch.id;
+            batSelect.value = ch.bat;
+            etageInput.value = ch.etage;
+            numInput.value = ch.numero;
+            capInput.value = ch.capacite;
+        } else {
+            title.textContent = "Nouvelle Chambre";
+            idInput.value = '';
+            batSelect.value = 'A';
+            etageInput.value = '0';
+            numInput.value = '';
+            capInput.value = '4';
+        }
+        modal.style.display = 'flex';
+    }
+
+    function fermerModal() {
+        document.getElementById('modalChambre').style.display = 'none';
+    }
+
+    async function sauvegarderChambre() {
+        const id = (document.getElementById('edit_ch_id') as HTMLInputElement).value;
+        const bat = (document.getElementById('ch_bat') as HTMLSelectElement).value;
+        const etage = parseInt((document.getElementById('ch_etage') as HTMLInputElement).value);
+        const numero = parseInt((document.getElementById('ch_num') as HTMLInputElement).value);
+        const capacite = parseInt((document.getElementById('ch_cap') as HTMLInputElement).value);
+
+        if (!numero || isNaN(numero)) return alert("Le numéro est obligatoire");
+
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `/api/chambres/${id}` : '/api/chambres';
+
+        try {
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bat, etage, numero, capacite })
+            });
+
+            if (res.ok) {
+                fermerModal();
+                chargerChambres();
+            } else {
+                const err = await res.json();
+                alert(err.error || "Erreur lors de l'enregistrement");
+            }
+        } catch(err) { console.error(err); }
+    }
+
+    async function supprimerChambre(id: string) {
+        if(!confirm("Supprimer cette chambre ?")) return;
+        try {
+            const res = await fetch(`/api/chambres/${id}`, { method: 'DELETE' });
+            if(res.ok) chargerChambres();
+            else {
+                const err = await res.json();
+                alert(err.error || "Erreur lors de la suppression");
+            }
+        } catch(err) { console.error(err); }
+    }
+</script>

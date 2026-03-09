@@ -1,0 +1,55 @@
+:root {
+    /* Dark Mode - Modern & Elegant */
+    --primary: #FF5370;
+    --primary-hover: #FF6B85;
+
+    --secondary: #4A5568;
+
+    --success: #48BB78;
+    --danger: #FC8181;
+    --warning: #F6AD55;
+    --info: #63B3ED;
+
+    /* Dark Surfaces */
+    --bg-app: #0F1419;
+    --bg-surface: #1A1F2E;
+    --bg-surface-alt: #252B3B;
+    --border-color: #2D3748;
+
+    /* Dark Text */
+    --text-main: #E8EAED;
+    --text-soft: #9AA0A6;
+    --text-muted: #6B7280;
+
+    /* Spacing System - Generous whitespace */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 32px;
+    --space-2xl: 48px;
+    --space-3xl: 64px;
+
+    /* Pill-shaped & Card Radius */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-2xl: 32px;
+    --radius-full: 9999px;
+
+    /* Shadows - More pronounced for dark mode */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.5);
+    --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.6);
+
+    /* Animation - Soft and fluid */
+    --transition-fast: 150ms ease;
+    --transition-base: 200ms ease;
+    --transition-slow: 300ms ease;
+
+    /* Glassmorphism Dark */
+    --glass-bg: rgba(26, 31, 46, 0.85);
+    --glass-blur: blur(20px);
+}

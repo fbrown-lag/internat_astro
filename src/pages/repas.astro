@@ -1,0 +1,821 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Header from "../components/Header.astro";
+import Button from "../components/ui/Button.astro";
+import Modal from "../components/ui/Modal.astro";
+import Card from "../components/ui/Card.astro";
+import Input from "../components/ui/Input.astro";
+import Select from "../components/ui/Select.astro";
+import "../styles/style.css";
+---
+
+<Layout title="Planification des Repas | Internat">
+    <Header />
+    <main class="main-content">
+        <header class="page-context mb-xl flex justify-between items-end">
+            <div>
+                <h1 class="page-title-sm">Gestion des Repas</h1>
+                <p class="text-muted">
+                    Planification hebdomadaire et exceptions alimentaires
+                </p>
+            </div>
+            <div class="flex gap-sm">
+                <Button id="btnDownload" variant="secondary">Télécharger</Button
+                >
+                <Button href="/annulations" variant="secondary"
+                    >Voir les annulations</Button
+                >
+            </div>
+        </header>
+
+        <div class="tabs-jours mb-xl">
+            <button class="tab-btn active" data-jour="lundi">Lundi</button>
+            <button class="tab-btn" data-jour="mardi">Mardi</button>
+            <button class="tab-btn" data-jour="mercredi">Mercredi</button>
+            <button class="tab-btn" data-jour="jeudi">Jeudi</button>
+        </div>
+
+        <Modal id="modalAnnulation" title="Enregistrer une absence">
+            <div class="flex flex-col gap-xs mb-md" style="position:relative;">
+                <Input
+                    id="annul_eleve_search"
+                    label="Élève"
+                    placeholder="Rechercher nom ou prénom..."
+                    autocomplete="off"
+                />
+                <input type="hidden" id="annul_eleve_id" />
+                <div id="annul_eleve_results" class="search-results"></div>
+            </div>
+
+            <Select id="annul_mode" label="Type d'absence">
+                <option value="jour">Absence ponctuelle (un jour)</option>
+                <option value="periode">Absence sur période</option>
+                <option value="hybride">Mode hybride (jour + période)</option>
+            </Select>
+
+            <div id="field_jour">
+                <Select id="annul_jour" label="Jour concerné">
+                    <option value="lundi">Lundi</option>
+                    <option value="mardi">Mardi</option>
+                    <option value="mercredi">Mercredi</option>
+                    <option value="jeudi">Jeudi</option>
+                </Select>
+            </div>
+
+            <div id="fields_dates" class="hidden gap-md">
+                <Input
+                    type="date"
+                    id="annul_debut"
+                    label="Date Début"
+                    class="flex-grow"
+                />
+                <Input
+                    type="date"
+                    id="annul_fin"
+                    label="Date Fin"
+                    class="flex-grow"
+                />
+            </div>
+
+            <div class="modal-actions">
+                <Button id="btnCancelModal" variant="secondary">Annuler</Button>
+                <Button id="btnSaveModal" variant="primary"
+                    >Enregistrer l'absence</Button
+                >
+            </div>
+        </Modal>
+
+        <Modal id="modalAjoutRepas" title="Repas Exceptionnel" maxWidth="500px">
+            <div class="flex flex-col gap-lg">
+                <div class="flex flex-col gap-xs" style="position:relative;">
+                    <Input
+                        id="ajout_eleve_search"
+                        label="Élève"
+                        placeholder="Rechercher nom ou prénom..."
+                        autocomplete="off"
+                    />
+                    <input type="hidden" id="ajout_eleve_id" />
+                    <div id="ajout_eleve_results" class="search-results"></div>
+                </div>
+
+                <Input type="date" id="ajout_date" label="Date du repas" />
+
+                <Select id="ajout_type" label="Type de repas">
+                    <option value="Chaud">Chaud</option>
+                    <option value="Froid">Froid</option>
+                </Select>
+
+                <div class="modal-actions">
+                    <Button id="btnCancelAjout" variant="secondary"
+                        >Annuler</Button
+                    >
+                    <Button id="btnSaveAjout" variant="primary">Ajouter</Button>
+                </div>
+            </div>
+        </Modal>
+
+        <style>
+            .search-results {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                width: 100%;
+                max-height: 200px;
+                overflow-y: auto;
+                background: var(--bg-surface);
+                border: 1px solid var(--border-color);
+                z-index: 100;
+                display: none;
+                box-shadow: var(--shadow-md);
+                border-radius: var(--radius-md);
+            }
+            .search-item {
+                padding: 10px;
+                cursor: pointer;
+                border-bottom: 1px solid var(--bg-app);
+                color: var(--text-main);
+            }
+            .search-item:hover {
+                background: var(--bg-app);
+                color: var(--primary);
+            }
+        </style>
+
+        <div class="grid grid-cols-2 gap-lg mb-lg">
+            <Card class="text-center">
+                <p
+                    class="text-muted text-xs uppercase font-bold tracking-widest m-0"
+                >
+                    Total Chaud
+                </p>
+                <span id="count-chaud" class="text-primary text-xl font-bold"
+                    >0</span
+                >
+            </Card>
+            <Card class="text-center">
+                <p
+                    class="text-muted text-xs uppercase font-bold tracking-widest m-0"
+                >
+                    Total Froid
+                </p>
+                <span id="count-froid" class="text-secondary text-xl font-bold"
+                    >0</span
+                >
+            </Card>
+        </div>
+
+        <Card title="Registre des Repas Réguliers">
+            <div class="flex justify-between items-center mb-md">
+                <p class="section-hint m-0">
+                    Élèves inscrits au planning hebdomadaire standard
+                </p>
+                <div class="flex gap-md">
+                    <Button
+                        id="btnOpenAnnul"
+                        variant="secondary"
+                        style="padding: 8px 16px;"
+                        >Enregistrer une absence</Button
+                    >
+                </div>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ÉLÈVE</th>
+                            <th>CLASSE</th>
+                            <th>CHAMBRE</th>
+                            <th>RETOUR</th>
+                            <th>REPAS FINAL</th>
+                            <th>STATUT</th>
+                        </tr>
+                    </thead>
+                    <tbody id="repasRegulierBody"></tbody>
+                </table>
+            </div>
+        </Card>
+
+        <div class="mt-lg">
+            <Card title="Ajouts Exceptionnels">
+                <div class="flex justify-between items-center mb-md">
+                    <p class="section-hint m-0">
+                        Élèves ayant forcé un repas pour ce jour spécifique
+                    </p>
+                    <Button
+                        id="btnOpenAjout"
+                        variant="primary"
+                        style="padding: 8px 16px;">+ Ajouter Exception</Button
+                    >
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ÉLÈVE</th>
+                                <th>CLASSE</th>
+                                <th>CHAMBRE</th>
+                                <th>RETOUR</th>
+                                <th>REPAS FINAL</th>
+                                <th>STATUT</th>
+                            </tr>
+                        </thead>
+                        <tbody id="repasExceptionnelBody"></tbody>
+                    </table>
+                </div>
+            </Card>
+        </div>
+    </main>
+</Layout>
+
+<script>
+    let eleveSelectionneId: any = null;
+    let tousLesEleves: any[] = [];
+    let listeElevesChargee = false;
+    let currentStateData: any[] = [];
+
+    async function chargerRepas(jour: string) {
+        // Update tabs active state
+        document.querySelectorAll(".tab-btn").forEach((btn) => {
+            if (btn instanceof HTMLElement && btn.dataset.jour === jour)
+                btn.classList.add("active");
+            else btn.classList.remove("active");
+        });
+
+        try {
+            const res = await fetch(`/api/repas/${jour}`);
+            const data = await res.json();
+            currentStateData = data;
+
+            const regulierBody = document.getElementById("repasRegulierBody");
+            const exceptionnelBody = document.getElementById(
+                "repasExceptionnelBody",
+            );
+
+            if (regulierBody) regulierBody.innerHTML = "";
+            if (exceptionnelBody) exceptionnelBody.innerHTML = "";
+
+            let chaud = 0,
+                froid = 0;
+
+            data.forEach((r: any) => {
+                const isChaud = r.repas_final === "Chaud";
+                const isFroid = r.repas_final === "Froid";
+
+                if (isChaud) chaud++;
+                if (isFroid) froid++;
+
+                // Escape simple quotes for the onclick function
+                const nomSafe = r.nom.replace(/'/g, "\\'");
+                const prenomSafe = r.prenom.replace(/'/g, "\\'");
+
+                // If it's an exception (not normally active), we want a DELETE button instead of an ANNULER button
+                const isExceptionAddition =
+                    r.a_modification &&
+                    r.annulation_id &&
+                    r.repas_force !== "None";
+
+                const actionButton = isExceptionAddition
+                    ? `<button class="btn-delete-exception" 
+                                data-id="${r.annulation_id}" 
+                                style="padding: 5px 10px; font-size: 0.65rem; border: 1px solid var(--danger); color: var(--danger); background: transparent; cursor: pointer;">
+                            Supprimer
+                       </button>`
+                    : `<button class="btn-req-cancel btn-cancel" 
+                                data-id="${r.id}" 
+                                data-nom="${nomSafe}" 
+                                data-prenom="${prenomSafe}"
+                                style="padding: 5px 10px; font-size: 0.65rem; border: 1px solid var(--danger); color: var(--danger); background: transparent; cursor: pointer;">
+                            Annuler
+                       </button>`;
+
+                const rowHtml = `
+                    <tr class="${r.a_modification ? "row-modified" : ""}">
+                        <td><strong>${r.nom.toUpperCase()}</strong> ${r.prenom}</td>
+                        <td>${r.classe || "-"}</td>
+                        <td>${r.numero_chambre || "-"}</td>
+                        <td>${r.heure_retour || "18:00"}</td>
+                        <td class="repas-cell-${r.repas_final}">${r.repas_final}</td>
+                        <td>
+                            <span style="font-size: 0.8rem; min-width: 80px;">${r.repas_force && r.repas_force !== "None" ? "Modifié" : "Standard"}</span>
+                            ${actionButton}
+                        </td>
+                    </tr>
+                `;
+
+                if (r.a_modification && r.repas_final !== "None") {
+                    if (exceptionnelBody) exceptionnelBody.innerHTML += rowHtml;
+                } else {
+                    if (regulierBody) regulierBody.innerHTML += rowHtml;
+                }
+            });
+
+            if (exceptionnelBody && exceptionnelBody.innerHTML === "") {
+                exceptionnelBody.innerHTML =
+                    '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">Aucun ajout exceptionnel pour ce jour.</td></tr>';
+            }
+
+            const elChaud = document.getElementById("count-chaud");
+            const elFroid = document.getElementById("count-froid");
+            if (elChaud) elChaud.textContent = chaud.toString();
+            if (elFroid) elFroid.textContent = froid.toString();
+
+            // Re-attach listeners
+            attachActionListeners();
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    function attachActionListeners() {
+        // Annuler (for regular meals)
+        document.querySelectorAll(".btn-req-cancel").forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+                const target = e.target as HTMLElement;
+                ouvrirModaleAnnulation(
+                    target.dataset.id,
+                    target.dataset.nom,
+                    target.dataset.prenom,
+                );
+            });
+        });
+
+        // Supprimer (for exception additions)
+        document.querySelectorAll(".btn-delete-exception").forEach((btn) => {
+            btn.addEventListener("click", async (e) => {
+                const target = e.target as HTMLElement;
+                const id = target.dataset.id;
+                if (confirm("Supprimer ce repas exceptionnel ?")) {
+                    await supprimerAnnulation(id);
+                }
+            });
+        });
+    }
+
+    async function supprimerAnnulation(id: any) {
+        try {
+            // On s'assure de taper sur la route définie plus haut
+            const res = await fetch(`/api/repas/annulations/${id}`, {
+                method: "DELETE",
+            });
+            if (res.ok) {
+                const activeTab = document.querySelector(
+                    ".tab-btn.active",
+                ) as HTMLElement;
+                if (activeTab)
+                    await chargerRepas(activeTab.dataset.jour || "lundi");
+            } else {
+                alert("Erreur lors de la suppression");
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function ouvrirModaleAnnulation(
+        id: any = null,
+        nom: any = null,
+        prenom: any = null,
+    ) {
+        chargerListeEleves();
+        eleveSelectionneId = id;
+        const modal = document.getElementById("modalAnnulation");
+        if (modal) {
+            const title = modal.querySelector(".modal-title");
+            if (title)
+                title.textContent = id
+                    ? `Annulation : ${nom.toUpperCase()} ${prenom}`
+                    : "Enregistrer une absence";
+
+            // Reset/Set fields
+            (
+                document.getElementById("annul_eleve_id") as HTMLInputElement
+            ).value = id || "";
+            (
+                document.getElementById(
+                    "annul_eleve_search",
+                ) as HTMLInputElement
+            ).value = id ? `${nom.toUpperCase()} ${prenom}` : "";
+            (
+                document.getElementById("annul_eleve_results") as HTMLElement
+            ).style.display = "none";
+
+            modal.style.display = "flex";
+        }
+        document.body.style.overflow = "hidden";
+    }
+
+    function fermerModaleAnnulation() {
+        const modal = document.getElementById("modalAnnulation");
+        if (modal) modal.style.display = "none";
+        document.body.style.overflow = "auto";
+        eleveSelectionneId = null;
+    }
+
+    // --- AJOUT EXCEPTIONNEL LOGIC ---
+
+    async function chargerListeEleves() {
+        if (listeElevesChargee) return;
+
+        try {
+            const res = await fetch("/api/eleves/annuaire");
+            tousLesEleves = await res.json();
+            listeElevesChargee = true;
+        } catch (e) {
+            console.error(e);
+            alert("Erreur chargement liste élèves");
+        }
+    }
+
+    function filtrerEleves() {
+        const term = (
+            document.getElementById("ajout_eleve_search") as HTMLInputElement
+        ).value.toLowerCase();
+        const resultsDiv = document.getElementById("ajout_eleve_results");
+        if (!resultsDiv) return;
+
+        if (term.length < 2) {
+            resultsDiv.style.display = "none";
+            return;
+        }
+
+        const filtered = tousLesEleves.filter(
+            (e: any) =>
+                e.nom.toLowerCase().includes(term) ||
+                e.prenom.toLowerCase().includes(term),
+        );
+
+        if (filtered.length === 0) {
+            resultsDiv.innerHTML =
+                '<div style="padding:10px; color:var(--text-muted);">Aucun résultat</div>';
+        } else {
+            resultsDiv.innerHTML = filtered
+                .slice(0, 10)
+                .map(
+                    (e: any) => `
+                <div class="search-item" data-id="${e.id}" data-nom="${e.nom} ${e.prenom}">
+                    <strong>${e.nom.toUpperCase()}</strong> ${e.prenom} <span style="color:var(--text-muted); font-size:0.8rem;">(${e.classe || "?"})</span>
+                </div>
+            `,
+                )
+                .join("");
+
+            // Attach click listeners
+            resultsDiv.querySelectorAll(".search-item").forEach((item) => {
+                item.addEventListener("click", (e) => {
+                    const target = e.currentTarget as HTMLElement;
+                    selectionnerEleveAjout(
+                        target.dataset.id,
+                        target.dataset.nom,
+                    );
+                });
+            });
+        }
+        resultsDiv.style.display = "block";
+    }
+
+    function selectionnerEleveAjout(id: any, nomComplet: any) {
+        (document.getElementById("ajout_eleve_id") as HTMLInputElement).value =
+            id;
+        (
+            document.getElementById("ajout_eleve_search") as HTMLInputElement
+        ).value = nomComplet;
+        (
+            document.getElementById("ajout_eleve_results") as HTMLElement
+        ).style.display = "none";
+    }
+
+    function ouvrirModaleAjout() {
+        chargerListeEleves();
+        const m = document.getElementById("modalAjoutRepas");
+        if (m) m.style.display = "flex";
+
+        // Reset fields
+        (document.getElementById("ajout_eleve_id") as HTMLInputElement).value =
+            "";
+        (
+            document.getElementById("ajout_eleve_search") as HTMLInputElement
+        ).value = "";
+        (
+            document.getElementById("ajout_eleve_results") as HTMLElement
+        ).style.display = "none";
+
+        // Default date to today
+        (
+            document.getElementById("ajout_date") as HTMLInputElement
+        ).valueAsDate = new Date();
+    }
+
+    function fermerModaleAjout() {
+        const m = document.getElementById("modalAjoutRepas");
+        if (m) m.style.display = "none";
+    }
+
+    async function sauvegarderAjoutRepas() {
+        const eleveId = (
+            document.getElementById("ajout_eleve_id") as HTMLInputElement
+        ).value;
+        const date = (document.getElementById("ajout_date") as HTMLInputElement)
+            .value;
+        const type = (
+            document.getElementById("ajout_type") as HTMLSelectElement
+        ).value;
+
+        if (!eleveId || !date)
+            return alert(
+                "Veuillez remplir tous les champs (Sélectionnez un élève de la liste)",
+            );
+
+        try {
+            const res = await fetch("/api/repas/annulations", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    mode: "periode",
+                    eleve_id: eleveId,
+                    date_debut: date,
+                    date_fin: date,
+                    repas_force: type,
+                }),
+            });
+
+            if (res.ok) {
+                alert("Repas exceptionnel ajouté !");
+                fermerModaleAjout();
+                // Reload current tabs
+                const activeTab = document.querySelector(
+                    ".tab-btn.active",
+                ) as HTMLElement;
+                if (activeTab) chargerRepas(activeTab.dataset.jour || "lundi");
+            } else {
+                alert("Erreur lors de l'ajout");
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function toggleAnnulFields() {
+        const modeEl = document.getElementById(
+            "annul_mode",
+        ) as HTMLSelectElement;
+        const mode = modeEl ? modeEl.value : "jour";
+
+        const fieldJour = document.getElementById("field_jour");
+        const fieldsDates = document.getElementById("fields_dates");
+
+        if (fieldJour)
+            fieldJour.style.display =
+                mode === "jour" || mode === "hybride" ? "block" : "none";
+        if (fieldsDates) {
+            if (mode === "periode" || mode === "hybride") {
+                fieldsDates.classList.remove("hidden");
+                fieldsDates.style.display = "flex";
+            } else {
+                fieldsDates.classList.add("hidden");
+                fieldsDates.style.display = "none";
+            }
+        }
+    }
+
+    async function sauvegarderAnnulation() {
+        if (!eleveSelectionneId) return alert("Aucun élève sélectionné");
+
+        const modeEl = document.getElementById(
+            "annul_mode",
+        ) as HTMLSelectElement;
+        const jourEl = document.getElementById(
+            "annul_jour",
+        ) as HTMLSelectElement;
+        const debutEl = document.getElementById(
+            "annul_debut",
+        ) as HTMLInputElement;
+        const finEl = document.getElementById("annul_fin") as HTMLInputElement;
+
+        const payload = {
+            eleve_id: eleveSelectionneId,
+            mode: modeEl.value,
+            jour_cible: jourEl.value,
+            date_debut: debutEl.value || null,
+            date_fin: finEl.value || null,
+            repas_force: "None",
+        };
+
+        try {
+            const res = await fetch("/api/repas/annulations", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+
+            if (!res.ok) throw new Error("Erreur serveur");
+
+            alert("Annulation enregistrée.");
+            fermerModaleAnnulation();
+
+            const activeTab = document.querySelector(
+                ".tab-btn.active",
+            ) as HTMLElement;
+            if (activeTab) chargerRepas(activeTab.dataset.jour || "lundi");
+        } catch (err: any) {
+            alert("Erreur : " + err.message);
+        }
+    }
+
+    function downloadCSV() {
+        if (!currentStateData || currentStateData.length === 0) {
+            alert("Aucune donnée à télécharger");
+            return;
+        }
+
+        const activeTab = document.querySelector(
+            ".tab-btn.active",
+        ) as HTMLElement;
+        const jour = activeTab ? activeTab.dataset.jour : "jour";
+
+        // 1. Filter out Cancellations (None)
+        // We only want people who actually eat
+        const activeMeals = currentStateData.filter(
+            (r: any) => r.repas_final && r.repas_final !== "None",
+        );
+
+        // 2. Split Regular vs Exceptional
+        // Regular: No modification OR modification but not an addition (meaning they were already regular but changed details - wait, typically 'exception' table in UI is for additions OR mods.
+        // Let's stick to the UI logic:
+        // UI uses: r.a_modification && r.repas_final !== 'None' -> Exceptionnel Table
+        // Else -> Regular Table
+
+        const exceptionnels = activeMeals.filter((r: any) => r.a_modification);
+        const reguliers = activeMeals.filter((r: any) => !r.a_modification);
+
+        // 3. Build CSV Content
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += `SEP=,\n`; // Excel helper
+
+        // --- REGULIERS ---
+        csvContent += `REPAS REGULIERS (${jour?.toUpperCase()})\n`;
+        csvContent += "NOM,PRENOM,CLASSE,CHAMBRE,TYPE REPAS,STATUT\n";
+
+        reguliers.forEach((r: any) => {
+            const row = [
+                r.nom,
+                r.prenom,
+                r.classe || "",
+                r.numero_chambre || "",
+                r.repas_final,
+                "Standard",
+            ]
+                .map((f) => `"${f}"`)
+                .join(",");
+            csvContent += row + "\n";
+        });
+
+        csvContent += "\n"; // Spacer
+
+        // --- EXCEPTIONNELS ---
+        csvContent += `REPAS EXCEPTIONNELS / MODIFIES (${jour?.toUpperCase()})\n`;
+        csvContent += "NOM,PRENOM,CLASSE,CHAMBRE,TYPE REPAS,STATUT\n";
+
+        exceptionnels.forEach((r: any) => {
+            const statut =
+                r.repas_force && r.repas_force !== "None"
+                    ? "Modifié"
+                    : "Standard"; // Should be Modified usually if in this list
+            const row = [
+                r.nom,
+                r.prenom,
+                r.classe || "",
+                r.numero_chambre || "",
+                r.repas_final,
+                statut,
+            ]
+                .map((f) => `"${f}"`)
+                .join(",");
+            csvContent += row + "\n";
+        });
+
+        // 4. Trigger Download
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute(
+            "download",
+            `repas_${jour}_${new Date().toISOString().split("T")[0]}.csv`,
+        );
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // Init Logic
+    document.addEventListener("DOMContentLoaded", () => {
+        chargerRepas("lundi");
+
+        // Tabs
+        document.querySelectorAll(".tab-btn").forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+                const target = e.target as HTMLElement;
+                const jour = target.dataset.jour;
+                if (jour) chargerRepas(jour);
+            });
+        });
+
+        // Modal triggers (overlay click)
+        window.onclick = function (event: any) {
+            if (event.target.classList.contains("modal-overlay")) {
+                fermerModaleAnnulation();
+                fermerModaleAjout();
+            }
+        };
+
+        document
+            .getElementById("btnCancelModal")
+            ?.addEventListener("click", fermerModaleAnnulation);
+        document
+            .getElementById("btnSaveModal")
+            ?.addEventListener("click", sauvegarderAnnulation);
+        document
+            .getElementById("annul_mode")
+            ?.addEventListener("change", toggleAnnulFields);
+        document
+            .getElementById("btnDownload")
+            ?.addEventListener("click", downloadCSV);
+
+        // New Modal triggers
+        document
+            .getElementById("btnOpenAnnul")
+            ?.addEventListener("click", () => ouvrirModaleAnnulation());
+        document
+            .getElementById("btnOpenAjout")
+            ?.addEventListener("click", ouvrirModaleAjout);
+        document
+            .getElementById("btnCancelAjout")
+            ?.addEventListener("click", fermerModaleAjout);
+        document
+            .getElementById("btnSaveAjout")
+            ?.addEventListener("click", sauvegarderAjoutRepas);
+
+        // Search listeners
+        document
+            .getElementById("ajout_eleve_search")
+            ?.addEventListener("input", filtrerEleves);
+        document
+            .getElementById("annul_eleve_search")
+            ?.addEventListener("input", (e) => {
+                const term = (e.target as HTMLInputElement).value.toLowerCase();
+                const resultsDiv = document.getElementById(
+                    "annul_eleve_results",
+                );
+                if (!resultsDiv) return;
+                if (term.length < 2) {
+                    resultsDiv.style.display = "none";
+                    return;
+                }
+
+                const filtered = tousLesEleves.filter(
+                    (e: any) =>
+                        e.nom.toLowerCase().includes(term) ||
+                        e.prenom.toLowerCase().includes(term),
+                );
+
+                if (filtered.length === 0) {
+                    resultsDiv.innerHTML =
+                        '<div style="padding:10px; color:var(--text-muted);">Aucun résultat</div>';
+                } else {
+                    resultsDiv.innerHTML = filtered
+                        .slice(0, 10)
+                        .map(
+                            (e: any) => `
+                    <div class="search-item" data-id="${e.id}" data-nom="${e.nom} ${e.prenom}">
+                        <strong>${e.nom.toUpperCase()}</strong> ${e.prenom}
+                    </div>
+                `,
+                        )
+                        .join("");
+                    resultsDiv
+                        .querySelectorAll(".search-item")
+                        .forEach((item) => {
+                            item.addEventListener("click", (ev) => {
+                                const target = ev.currentTarget as HTMLElement;
+                                (
+                                    document.getElementById(
+                                        "annul_eleve_id",
+                                    ) as HTMLInputElement
+                                ).value = target.dataset.id || "";
+                                (
+                                    document.getElementById(
+                                        "annul_eleve_search",
+                                    ) as HTMLInputElement
+                                ).value = target.dataset.nom || "";
+                                (
+                                    document.getElementById(
+                                        "annul_eleve_results",
+                                    ) as HTMLElement
+                                ).style.display = "none";
+                                eleveSelectionneId = target.dataset.id;
+                            });
+                        });
+                }
+                resultsDiv.style.display = "block";
+            });
+    });
+</script>
