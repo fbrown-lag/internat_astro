@@ -11,8 +11,7 @@ dotenv.config({ path: envExamplePath });
 dotenv.config({ path: envPath });
 dotenv.config({ path: envLocalPath });
 
-const adminPasswordFallback = 'change_this_to_a_strong_password';
-const adminPassword = process.env.ADMIN_PASSWORD //|| adminPasswordFallback;
+const adminPassword = process.env.ADMIN_PASSWORD
 
 export const POST = async ({ request, cookies }) => {
     try {
