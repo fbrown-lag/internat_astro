@@ -1,7 +1,9 @@
 import dotenv from 'dotenv';
 
-dotenv.config();
+// Load defaults from .env.example first, then allow overrides from .env and .env.local.
 dotenv.config({ path: '.env.example' });
+dotenv.config({ path: '.env' });
+dotenv.config({ path: '.env.local' });
 
 export const POST = async ({ request, cookies }) => {
     try {
