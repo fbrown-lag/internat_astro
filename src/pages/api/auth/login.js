@@ -8,7 +8,7 @@ export const POST = async ({ request, cookies }) => {
         const { password } = await request.json();
         const adminPassword = process.env.ADMIN_PASSWORD;
 
-        if (password && password === "hello"){// adminPassword) {
+        if (password && password === adminPassword) {
             // Set an auth cookie
             cookies.set('auth_session', 'authenticated', {
                 path: '/',
