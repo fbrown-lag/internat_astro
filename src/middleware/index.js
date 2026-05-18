@@ -23,6 +23,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
     const isAuthenticated = cookies.get("auth_session")?.value === "authenticated";
 
+    // If the user is already authenticated, they should not stay on the login page
+    if (isAuthenticated && isLoginPage) {
+        return redirect("/");
+    }
+
     // If not authenticated and trying to access a protected path
     if (!isAuthenticated && !isPublicPath) {
         // If it's an API request, return 401 instead of redirecting
