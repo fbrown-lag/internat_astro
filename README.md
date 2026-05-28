@@ -18,6 +18,10 @@ Ce document explique en détail comment déployer l'application `gestion_interna
    ```
 4. Assurez-vous que les ports **4321** (application spatiale Astro) et **5433** (base de données exposée si nécessaire) sont libres ou ajustez-les dans le fichier `docker-compose.yml`.
 
+> **Base de données : migration OVH**
+>
+> L'application reste actuellement construite sur PostgreSQL (`pg`, `psql`, `pg_dump`, scripts SQL PostgreSQL). La base OVH fournie est MySQL. Un branchement direct vers cette base n'est pas compatible sans migration SQL et de driver. Consultez le guide `OVH_MIGRATION.md` avant toute tentative de déploiement vers OVH.
+
 ## 2. Déploiement avec Docker (Lancement)
 
 L'application est entièrement conteneurisée (Frontend NodeJS/Astro + Backend PostgreSQL).
@@ -34,6 +38,8 @@ docker compose up -d --build
 - Elle construit l'image de l'application (`app`), installe les dépendances et build le projet.
 - Elle lance les deux conteneurs.
 - Un script d'entrée (`entrypoint.sh`) vérifiera si la base de données est prête, proposera la restauration éventuelle d'une sauvegarde, ou initialisera la base si elle est vide.
+
+> **Important** : cette version de l'application est encore dédiée à PostgreSQL. Une migration vers l'instance OVH MySQL nécessite la refonte des requêtes, des scripts de sauvegarde et du driver de base.
 
 ### Vérifier les logs :
 Si vous devez vérifier que tout s'est bien lancé :
