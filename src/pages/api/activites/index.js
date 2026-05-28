@@ -1,4 +1,4 @@
-import { withTransaction, pool } from '../../../lib/db';
+import { getDatabaseUrl, withTransaction, pool } from '../../../lib/db';
 
 // Simple Levenshtein distance for similarity check
 function levenshtein(a, b) {
@@ -30,11 +30,27 @@ function calculateSimilarity(s1, s2) {
 }
 
 export const GET = async () => {
+    const databaseUrl = getDatabaseUrl();
+    if (!databaseUrl) {
+        console.error('[api/activites] No database URL configured');
+        return new Response(JSON.stringify({ error: 'Base de données non configurée' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
     try {
         const result = await pool.query('SELECT * FROM activites ORDER BY nom');
-        return new Response(JSON.stringify(result.rows), { status: 200 });
+        return new Response(JSON.stringify(result.rows), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        });
     } catch (err) {
-        return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+        console.error('[api/activites] Failed to load activities', err);
+        return new Response(JSON.stringify({ error: err.message }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 };
 

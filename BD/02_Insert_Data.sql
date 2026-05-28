@@ -1,4 +1,4 @@
--- Activités
+-- 1. Activités (Indépendante)
 INSERT INTO public.activites (id, nom, description) VALUES
     ('FOOT', 'Football Club', 'Entraînement le mercredi après-midi'),
     ('THEA', 'Théâtre', 'Répétition pour la pièce de fin d''année'),
@@ -26,14 +26,14 @@ INSERT INTO public.activites (id, nom, description) VALUES
     ('BOXE', 'Boxe', NULL),
     ('VIOL', 'Violon', NULL);
 
--- Chambres
+-- 2. Chambres (Indépendante)
 INSERT INTO public.chambres (id, numero, capacite, etage, bat, dispo) VALUES
     (1, 101, 3, 1, 'A', 3),
     (2, 102, 2, 1, 'A', 2),
     (3, 204, 4, 2, 'B', 4),
     (4, 305, 1, 3, 'C', 1);
 
--- Classes
+-- 3. Classes (Indépendante)
 INSERT INTO public.classes (id, nom, niveau, prof_principal, cpe_referent) VALUES
     (1, '2NDE-1', 'Seconde', 'M. Petit', NULL),
     (2, '1ERE-G', 'Premiere', 'Mme Durand', NULL),
@@ -51,10 +51,33 @@ INSERT INTO public.classes (id, nom, niveau, prof_principal, cpe_referent) VALUE
     (14, 'TERM2', 'Terminale', NULL, NULL),
     (15, 'CPGE2', 'CPGE', NULL, NULL);
 
--- Démissionnaires
--- Pas de données initiales dans cette instance.
+-- 4. Responsables (DÉPLACÉ ICI - Requis par la table élèves)
+INSERT INTO public.responsables (id, nom, prenom, telephone, adresse) VALUES
+    (1, 'Dupont', 'Jean-Pierre', '0476001122', '12 rue de la Paix, 38000 Grenoble'),
+    (2, 'Leroy', 'Catherine', '0476334455', '5 Avenue Alsace, 38100 Grenoble'),
+    (3, 'Moreau', 'Robert', '0476998877', '21 Place Victor Hugo, 38000 Grenoble'),
+    (4, 'M.', 'Dupont', NULL, NULL),
+    (5, 'Mme', 'Bernard', NULL, NULL),
+    (6, 'M.', 'Robert', NULL, NULL),
+    (7, 'M.', 'Richard', NULL, NULL),
+    (8, 'M.', 'Lefebvre', NULL, NULL),
+    (9, 'M.', 'Moreau', NULL, NULL),
+    (10, 'M.', 'Laurent', NULL, NULL),
+    (11, 'M.', 'Michel', NULL, NULL),
+    (12, 'M.', 'David', NULL, NULL),
+    (13, 'M.', 'Bertrand', NULL, NULL),
+    (14, 'M.', 'Vincent', NULL, NULL),
+    (15, 'M.', 'Fournier', NULL, NULL),
+    (16, 'M.', 'Girard', NULL, NULL),
+    (17, 'M.', 'Andre', NULL, NULL),
+    (18, 'M.', 'Mercier', NULL, NULL),
+    (19, 'M.', 'Dupuis', NULL, NULL),
+    (20, 'M.', 'Bonnet', NULL, NULL),
+    (21, 'M.', 'Francois', NULL, NULL),
+    (22, 'M.', 'Legrand', NULL, NULL),
+    (23, 'M.', 'Garnier', NULL, NULL);
 
--- Élèves
+-- 5. Élèves (Dépend de toutes les tables ci-dessus)
 INSERT INTO public.eleves (id, nom, prenom, classe_id, adresse, genre, temps_transport, chambre_id, dimanche, referent_grenoble_id, dossier_cartone_transmis, dossier_complet, urgence_sociale, activite_id) VALUES
     (1, 'Martin', 'Lucas', 1, NULL, 'M', NULL, 1, false, 1, false, false, false, 'FOOT'),
     (2, 'Bernard', 'Chloé', 1, NULL, 'F', NULL, 1, false, 2, false, false, false, NULL),
@@ -91,15 +114,12 @@ INSERT INTO public.eleves (id, nom, prenom, classe_id, adresse, genre, temps_tra
     (33, 'LEGRAND', 'Arthur', 12, NULL, 'M', NULL, NULL, false, 22, true, true, false, 'BOXE'),
     (34, 'GARNIER', 'Lisa', 13, '15 Rue St Michel', 'F', '01:15:00', NULL, true, 23, true, false, true, 'VIOL');
 
--- Incidents
+-- 6. Incidents (Dépend de chambres)
 INSERT INTO public.incidents (id, chambre_id, date_signalement, intervenant, date_resolution) VALUES
     (1, 1, '2024-03-20', 'Plombier - Fuite radiateur', NULL),
     (2, 3, '2024-03-21', 'Électricien - Ampoule HS', NULL);
 
--- Repas annulations
--- Pas de données initiales dans cette instance.
-
--- Repas prévus
+-- 7. Repas prévus (Dépend de eleves)
 INSERT INTO public.repas_prevus (id, eleve_id, jour_nom, type_repas_prevu, repas_exceptionnel) VALUES
     (1, 1, 'lundi', 'Chaud', NULL),
     (2, 1, 'mardi', 'Chaud', NULL),
@@ -113,40 +133,14 @@ INSERT INTO public.repas_prevus (id, eleve_id, jour_nom, type_repas_prevu, repas
     (10, 4, 'lundi', 'Chaud', NULL),
     (11, 4, 'mercredi', 'Froid', NULL);
 
--- Responsables
-INSERT INTO public.responsables (id, nom, prenom, telephone, adresse) VALUES
-    (1, 'Dupont', 'Jean-Pierre', '0476001122', '12 rue de la Paix, 38000 Grenoble'),
-    (2, 'Leroy', 'Catherine', '0476334455', '5 Avenue Alsace, 38100 Grenoble'),
-    (3, 'Moreau', 'Robert', '0476998877', '21 Place Victor Hugo, 38000 Grenoble'),
-    (4, 'M.', 'Dupont', NULL, NULL),
-    (5, 'Mme', 'Bernard', NULL, NULL),
-    (6, 'M.', 'Robert', NULL, NULL),
-    (7, 'M.', 'Richard', NULL, NULL),
-    (8, 'M.', 'Lefebvre', NULL, NULL),
-    (9, 'M.', 'Moreau', NULL, NULL),
-    (10, 'M.', 'Laurent', NULL, NULL),
-    (11, 'M.', 'Michel', NULL, NULL),
-    (12, 'M.', 'David', NULL, NULL),
-    (13, 'M.', 'Bertrand', NULL, NULL),
-    (14, 'M.', 'Vincent', NULL, NULL),
-    (15, 'M.', 'Fournier', NULL, NULL),
-    (16, 'M.', 'Girard', NULL, NULL),
-    (17, 'M.', 'Andre', NULL, NULL),
-    (18, 'M.', 'Mercier', NULL, NULL),
-    (19, 'M.', 'Dupuis', NULL, NULL),
-    (20, 'M.', 'Bonnet', NULL, NULL),
-    (21, 'M.', 'Francois', NULL, NULL),
-    (22, 'M.', 'Legrand', NULL, NULL),
-    (23, 'M.', 'Garnier', NULL, NULL);
-
--- Retours tardifs
+-- 8. Retours tardifs (Dépend de eleves)
 INSERT INTO public.retours_tardifs (eleve_id, lundi_actif, mardi_actif, mercredi_actif, jeudi_actif, heure_lundi, heure_mardi, heure_mercredi, heure_jeudi) VALUES
     (1, true, true, true, true, '19:00:00', '19:00:00', '19:00:00', '19:00:00'),
     (2, true, true, true, false, '17:00:00', '17:00:00', '17:00:00', NULL),
     (3, false, false, true, true, NULL, NULL, '17:30:00', '17:30:00'),
     (4, true, false, true, false, '18:30:00', NULL, '18:30:00', NULL);
 
--- Sequences
+-- 9. Sequences
 SELECT pg_catalog.setval('public.chambres_id_seq', 4, true);
 SELECT pg_catalog.setval('public.classes_id_seq', 15, true);
 SELECT pg_catalog.setval('public.eleves_id_seq', 34, true);

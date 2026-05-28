@@ -1,8 +1,9 @@
-import { pool } from '../../../lib/db';
+import { getDatabaseUrl, pool } from '../../../lib/db';
 
 export const GET = async () => {
-    if (!process.env.DATABASE_URL) {
-        console.error('[api/eleves/annuaire] DATABASE_URL is not configured');
+    const databaseUrl = getDatabaseUrl();
+    if (!databaseUrl) {
+        console.error('[api/eleves/annuaire] No database URL configured');
         return new Response(JSON.stringify({ error: "Base de données non configurée" }), {
             status: 503,
             headers: { 'Content-Type': 'application/json' }

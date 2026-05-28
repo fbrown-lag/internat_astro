@@ -2,6 +2,7 @@ import { exec } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import 'dotenv/config';
+import { getDatabaseUrl } from './db';
 
 // Ensure backup directory exists
 const BACKUP_DIR = path.resolve(process.cwd(), 'backups');
@@ -16,10 +17,10 @@ export async function performBackup() {
 
     console.log(`[Backup] Starting backup to ${filepath}...`);
 
-    // Using DATABASE_URL from env
-    const dbUrl = process.env.DATABASE_URL;
+    // Use the shared DB URL fallback to support both Vercel and local env names
+    const dbUrl = getDatabaseUrl();
     if (!dbUrl) {
-        console.error('[Backup] Error: DATABASE_URL not set.');
+        console.error('[Backup] Error: database URL not set.');
         return;
     }
 
