@@ -37,7 +37,10 @@ export const GET = async () => {
         });
     } catch (err) {
         console.error('[api/eleves/annuaire] Failed to load élèves', err);
-        return new Response(JSON.stringify({ error: "Erreur lors du chargement de l'annuaire" }), {
+        return new Response(JSON.stringify({
+            error: "Erreur lors du chargement de l'annuaire",
+            details: err.message
+        }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' }
         });
