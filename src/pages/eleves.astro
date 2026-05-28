@@ -481,16 +481,26 @@ import "../styles/style.css";
     async function chargerEleves() {
         try {
             const response = await fetch("/api/eleves/annuaire");
-            if (!response.ok) throw new Error("Erreur réseau");
 
-            const data = await response.json();
-            afficherTableau(data);
+            let payload;
+            try {
+                payload = await response.json();
+            } catch (parseError) {
+                payload = null;
+            }
+
+            if (!response.ok) {
+                const message =
+                    payload?.error || `Erreur serveur (${response.status})`;
+                throw new Error(message);
+            }
+
+            afficherTableau(payload);
         } catch (error) {
             console.error("Erreur lors du chargement des élèves:", error);
             const body = document.getElementById("tableBody");
             if (body)
-                body.innerHTML =
-                    '<tr><td colspan="100%" style="color:red; text-align:center;">Erreur de connexion au serveur</td></tr>';
+                body.innerHTML = `<tr><td colspan="100%" style="color:red; text-align:center;">${error instanceof Error ? error.message : "Erreur de connexion au serveur"}</td></tr>`;
         }
     }
 

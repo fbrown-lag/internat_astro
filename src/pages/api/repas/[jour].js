@@ -101,12 +101,3 @@ export const GET = async ({ params }) => {
         });
     }
 }
-
-export function getStaticPaths() {
-    return [
-        { params: { jour: 'lundi' } },
-        { params: { jour: 'mardi' } },
-        { params: { jour: 'mercredi' } },
-        { params: { jour: 'jeudi' } },
-    ];
-}

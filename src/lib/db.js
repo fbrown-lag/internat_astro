@@ -5,7 +5,7 @@ const { Pool } = pg;
 
 // Use connectionString from environment variables for better security and flexibility
 export const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: process.env.POSTGRES_URL,
 });
 
 /**

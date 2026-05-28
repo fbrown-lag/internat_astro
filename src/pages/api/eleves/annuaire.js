@@ -1,6 +1,14 @@
 import { pool } from '../../../lib/db';
 
 export const GET = async () => {
+    if (!process.env.DATABASE_URL) {
+        console.error('[api/eleves/annuaire] DATABASE_URL is not configured');
+        return new Response(JSON.stringify({ error: "Base de données non configurée" }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
     try {
         const query = `
             SELECT 
@@ -22,8 +30,15 @@ export const GET = async () => {
             ORDER BY e.nom ASC, e.prenom ASC`;
 
         const result = await pool.query(query);
-        return new Response(JSON.stringify(result.rows), { status: 200 });
+        return new Response(JSON.stringify(result.rows), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        });
     } catch (err) {
-        return new Response(JSON.stringify({ error: "Erreur lors du chargement de l'annuaire" }), { status: 500 });
+        console.error('[api/eleves/annuaire] Failed to load élèves', err);
+        return new Response(JSON.stringify({ error: "Erreur lors du chargement de l'annuaire" }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 }
