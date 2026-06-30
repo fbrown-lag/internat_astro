@@ -14,7 +14,7 @@ async function resetDB() {
         console.log("Cleaning public schema...");
         //await pool.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public;");
         //await pool.query("GRANT ALL ON SCHEMA public TO public;");
-        await pool.query("CREATE SCHEMA IF NOT EXISTS public;");
+        //await pool.query("CREATE SCHEMA IF NOT EXISTS public;");
 
         for (const scriptPath of scripts) {
             const absolutePath = path.resolve(process.cwd(), scriptPath);
