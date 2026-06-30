@@ -13,6 +13,15 @@
 - Importez le projet source depuis l'URL du dépôt sur votre GitHub
 - Importer le projet de votre GitHub sur Vercel pour le déploiement
 
+**Variables d'environnement secrètes :**
+
+```text
+POSTGRES_USER : N.C.
+POSTGRES_PASSWORD : N.C.
+POSTGRES_DB : N.C.
+DATABASE_URL : Chaîne de connexion de la forme postgresql://user:password@hote:port/db
+ADMIN_PASSWORD : Mot de passe de connexion au site web après déploiement
+
 - Variables d'environnement secrètes :
 -  `POSTGRES_USER` : N.C.
 -  `POSTGRES_PASSWORD` : N.C.
