@@ -4,10 +4,10 @@ import path from 'path';
 
 async function resetDB() {
     const scripts = [
-        '../BD/01_Schema.sql',
-        '../BD/02_Insert_Data.sql',
-        '../BD/03_Views_DB.sql',
-        '../BD/04_Function.sql'
+        'BD/01_Schema.sql',
+        'BD/02_Insert_Data.sql',
+        'BD/03_Views_DB.sql',
+        'BD/04_Function.sql'
     ];
 
     try {
