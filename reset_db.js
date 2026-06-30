@@ -12,9 +12,9 @@ async function resetDB() {
 
     try {
         console.log("Cleaning public schema...");
+        // Ces deux lignes sont commentées pour une utilisation sur OVH Cloud : Voir OVH_INIT_DB.md
         //await pool.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public;");
         //await pool.query("GRANT ALL ON SCHEMA public TO public;");
-        //await pool.query("CREATE SCHEMA IF NOT EXISTS public;");
 
         for (const scriptPath of scripts) {
             const absolutePath = path.resolve(process.cwd(), scriptPath);
