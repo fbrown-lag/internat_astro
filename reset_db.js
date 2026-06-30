@@ -12,7 +12,7 @@ async function resetDB() {
 
     try {
         console.log("Cleaning public schema...");
-        // Ces deux lignes sont commentées pour une utilisation sur OVH Cloud : Voir OVH_INIT_DB.md
+        // Ces deux lignes sont commentées pour une utilisation sur OVH Cloud : Voir README.md. Décommentez pour Docker !
         //await pool.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public;");
         //await pool.query("GRANT ALL ON SCHEMA public TO public;");
 
