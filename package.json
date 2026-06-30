@@ -4,10 +4,11 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "node ./reset_db.js && astro build",
     "preview": "astro preview",
     "start": "node ./dist/server/entry.mjs",
-    "astro": "astro"
+    "astro": "astro",
+    "db:reset": "node ./reset_db.js"
   },
   "dependencies": {
     "@astrojs/node": "^10.0.6",
