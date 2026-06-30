@@ -7,6 +7,7 @@ Ce document explique en détail comment déployer l'application `gestion_interna
 - Un serveur Linux (ex: Ubuntu Server, Debian) connecté à votre réseau local.
 - **Docker** et **Docker Compose** installés sur le serveur.
 - L'accès SSH ou physique au serveur.
+- Modification de reset_db.js pour Docker
 
 ## 1. Récupération et Configuration
 
