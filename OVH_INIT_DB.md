@@ -2,16 +2,16 @@
 
 ## Sur la console de management OVH
 
-- Acheter une BDD PostgresSQL sur le site OVH (datacloud)
-- Autoriser la plage d'adresse IP 0.0.0.0/0
+- Achetez une BDD PostgresSQL sur le site OVH (datacloud)
+- Autorisez la plage d'adresse IP 0.0.0.0/0
 - Créez une nouvelle base de données
-- Ajouter un utilisateur Administrateur de la base de données
+- Ajoutez un utilisateur Administrateur de la base de données
 
 ## Sur le site Vercel
 
 - Créez un compte GitHub et authentifiez-vous à Vercel depuis celui-ci
 - Importez le projet source depuis l'URL du dépôt sur votre GitHub
-- Importer le projet de votre GitHub sur Vercel pour le déploiement
+- Importez le projet de votre GitHub sur Vercel pour le déploiement
 
 **Variables d'environnement secrètes :**
 
